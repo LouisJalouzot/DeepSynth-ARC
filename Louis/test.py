@@ -1,3 +1,5 @@
+import sys, copy, matplotlib.pyplot as plt, json, pickle
+sys.path.insert(0, '..')
 from type_system import *
 from cons_list import *
 from program import *
@@ -13,11 +15,9 @@ from Algorithms.dfs import dfs
 from Algorithms.bfs import bfs
 from Algorithms.sqrt_sampling import sqrt_sampling
 
-from ARC.objects import *
-from sols import *
-import pickle, json
-import matplotlib.pyplot as plt
-from ARC.ARC import semantics, primitive_types
+from Louis.ARC.objects import *
+from Louis.sols import *
+from Louis.ARC.ARC import *
 
 dsl = DSL(semantics = semantics, primitive_types = primitive_types)
 #print(dsl)
@@ -32,7 +32,7 @@ def ARC():
     # print(len(pcfg.rules))
 
     pcfg = dsl.DSL_to_Random_PCFG(t, max_program_depth=i)
-    with open('ARC_testing/pcfg_ARC_%s.pickle' % i, 'wb') as f:
+    with open('ARC_data/pcfg_ARC_%s.pickle' % i, 'wb') as f:
         pickle.dump(pcfg, f)
 
     d = False
@@ -50,9 +50,10 @@ def ARC():
         # print(p.eval(dsl, (var0, None), p.__hash__).display('object'))
         for p in pcfg.sampling():
             #try:
-            # p = Function(BasicPrimitive('XCOORD_LOW'),[Function(BasicPrimitive('ACCESS'),[BasicPrimitive('0'),Variable(0)])])
+            p = Function(Lambda(Lambda(Function(BasicPrimitive('map'), [Variable(0), Variable(2)]))),
+                         [BasicPrimitive('0'), Lambda(Function(BasicPrimitive('SYMETRY_X'), [Variable(0)]))])
             print(t, p)
-            objects = p.eval(dsl, (var0, None), p.__hash__)
+            objects = p.eval_naive(dsl, (var0, None))
                 # if any([True for obj in objects if obj == None]):
                 #     raise TypeError
             #    try:
@@ -69,28 +70,28 @@ def ARC():
                 break
             print("\n")
             
-    # plt.show()
+    plt.show()
     
-# ARC()
+ARC()
 
-p1 = Function(BasicPrimitive('ROTATION90'), [Variable(0)])
-p2 = Function(BasicPrimitive('map'), [Variable(0), Variable(1)])
-p = Function(Lambda(p2), [Lambda(p1)])
+# p1 = Function(BasicPrimitive('ROTATION90'), [Variable(0)])
+# p2 = Function(BasicPrimitive('map'), [Variable(0), Variable(1)])
+# p = Function(Lambda(p2), [Lambda(p1)])
 
-i = 2
-with open('ARC/data/training/a87f7484.json') as json_file:
-        pb = json.load(json_file)
-        grid = pb['train'][i]['input']
-        display(grid)
-        var0 = find_objects(grid, 'contact by point and color')
-        # print(var0)
-        # print(p_a87f7484)
-        # objects = p_a87f7484.eval(dsl, (var0, None), p_a87f7484.__hash__)
-        objects = p.eval_naive(dsl, (var0, None))
-        print(p)
-        # print(objects)
-        display(objects_to_grid(objects))
-        # display(pb['train'][i]['output'])
-        # display(objects_to_grid(Function(BasicPrimitive('map'), [BasicPrimitive('ROTATION90'), Variable(0)]).eval(dsl, (var0, None), 276427)))
+# i = 2
+# with open('ARC/data/training/a87f7484.json') as json_file:
+#         pb = json.load(json_file)
+#         grid = pb['train'][i]['input']
+#         display(grid)
+#         var0 = find_objects(grid, 'contact by point and color')
+#         # print(var0)
+#         # print(p_a87f7484)
+#         # objects = p_a87f7484.eval(dsl, (var0, None), p_a87f7484.__hash__)
+#         objects = p.eval_naive(dsl, (var0, None))
+#         print(p)
+#         # print(objects)
+#         display(objects_to_grid(objects))
+#         # display(pb['train'][i]['output'])
+#         # display(objects_to_grid(Function(BasicPrimitive('map'), [BasicPrimitive('ROTATION90'), Variable(0)]).eval(dsl, (var0, None), 276427)))
         
-plt.show()
+# plt.show()
