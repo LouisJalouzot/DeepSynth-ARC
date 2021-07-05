@@ -1,0 +1,234 @@
+from type_system import *
+from program import *
+
+# map (lambda o: (TRANSLATE 0 ((YCOORD_HIGH o) - (YCOORD_LOW o) + 1) (DUPLICATE (TRANSLATE 0 0 o))) var0
+p_28bf18c6 = Function(BasicPrimitive('cons'),[
+    Function(Lambda(
+        Function(BasicPrimitive('TRANSLATE'),[
+            BasicPrimitive('0'),
+            Function(BasicPrimitive('+'),[
+                Function(BasicPrimitive('-'),[
+                    Function(BasicPrimitive('YCOORD_HIGH'),[
+                        Variable(0)
+                    ]),
+                    Function(BasicPrimitive('YCOORD_LOW'),[
+                        Variable(0)
+                    ])
+                ]),
+                BasicPrimitive('1')
+            ]),
+            Function(BasicPrimitive('DUPLICATE'),[
+                Function(BasicPrimitive('TRANSLATE'),[
+                    BasicPrimitive('0'),
+                    BasicPrimitive('0'),
+                    Variable(0)
+                ])
+            ])
+        ])
+    ),[
+        Function(BasicPrimitive('car'),[
+            Variable(0)
+        ])
+    ]),
+    Variable(0)
+])
+
+# if (SIZE(ACCESS 1 var0) > SIZE(ACCESS 0 var0)) (TRANSLATE (- XCOORD_LOW(ACCESS 1 var0) 1) -(YCOORD_LOW(ACCESS 1 var0) 1) DUPLICATE(ACCESS 0 var0))
+# (TRANSLATE (- XCOORD_LOW(ACCESS 0 var0) 1) -(YCOORD_LOW(ACCESS 0 var0) 1) DUPLICATE(ACCESS 1 var0))
+p_88a10436 = Function(BasicPrimitive('if'),[
+    Function(BasicPrimitive('gt?'),[
+        Function(BasicPrimitive('SIZE'),[
+            Function(BasicPrimitive('car'),[
+                Function(BasicPrimitive('car'),[
+                    Variable(0)
+                ])
+            ])
+        ]),
+        Function(BasicPrimitive('SIZE'),[
+            Function(BasicPrimitive('car'),[
+                Variable(0)
+            ])
+        ])
+    ]),
+    Function(BasicPrimitive('cons'),[
+        Function(BasicPrimitive('TRANSLATE'),[
+            Function(BasicPrimitive('-'),[
+                Function(BasicPrimitive('XCOORD_LOW'),[
+                    Function(BasicPrimitive('car'),[
+                        Variable(0)
+                    ])
+                ]),
+                BasicPrimitive('1')
+            ]),
+            Function(BasicPrimitive('-'),[
+                Function(BasicPrimitive('YCOORD_LOW'),[
+                    Function(BasicPrimitive('car'),[
+                        Variable(0)
+                    ])
+                ]),
+                BasicPrimitive('1')
+            ]),
+            Function(BasicPrimitive('DUPLICATE'),[
+                Function(BasicPrimitive('car'),[
+                    Function(BasicPrimitive('car'),[
+                        Variable(0)
+                    ])
+                ])
+            ])
+        ]),
+        Function(BasicPrimitive('cdr'),[
+            Variable(0)
+        ])
+    ]),
+    Function(BasicPrimitive('cons'),[
+        Function(BasicPrimitive('TRANSLATE'),[
+            Function(BasicPrimitive('-'),[
+                Function(BasicPrimitive('XCOORD_LOW'),[
+                    Function(BasicPrimitive('car'),[
+                        Function(BasicPrimitive('car'),[
+                            Variable(0)
+                        ])
+                    ])
+                ]),
+                BasicPrimitive('1')
+            ]),
+            Function(BasicPrimitive('-'),[
+                Function(BasicPrimitive('YCOORD_LOW'),[
+                    Function(BasicPrimitive('car'),[
+                        Function(BasicPrimitive('car'),[
+                            Variable(0)
+                        ])
+                    ])
+                ]),
+                BasicPrimitive('1')
+            ]),
+            Function(BasicPrimitive('DUPLICATE'),[
+                Function(BasicPrimitive('car'),[
+                    Variable(0)
+                ])
+            ])
+        ]),
+        Function(BasicPrimitive('cons'),[
+            Function(BasicPrimitive('car'),[
+                Variable(0)
+            ]),
+            BasicPrimitive('empty')
+        ])
+    ])
+])
+
+# map (lambda o: (lambda i: lambda j: ADD_PIXEL(i,j-1,RED,ADD_PIXEL(i-1,j,...,o)) (XCOORD_LOW o) (YCOORD_LOW o)) var0
+p_d364b489 = Function(BasicPrimitive('map'),[
+    Lambda(
+        Function(Lambda(
+            Function(Lambda(
+                Function(BasicPrimitive('ADD_PIXEL'),[
+                    Variable(0),
+                    Function(BasicPrimitive('-'),[
+                        Variable(1),
+                        BasicPrimitive('1')
+                    ]),
+                    BasicPrimitive('RED'),
+                    Function(BasicPrimitive('ADD_PIXEL'),[
+                        Function(BasicPrimitive('-'),[
+                            Variable(0),
+                            BasicPrimitive('1')
+                        ]),
+                        Variable(1),
+                        BasicPrimitive('ORANGE'),
+                        Function(BasicPrimitive('ADD_PIXEL'),[
+                            Variable(0),
+                            Function(BasicPrimitive('+'),[
+                                Variable(1),
+                                BasicPrimitive('1')
+                            ]),
+                            BasicPrimitive('PINK'),
+                            Function(BasicPrimitive('ADD_PIXEL'),[
+                                Function(BasicPrimitive('+'),[
+                                    Variable(0),
+                                    BasicPrimitive('1')
+                                ]),
+                                Variable(1),
+                                BasicPrimitive('CYAN'),
+                                Variable(2)
+                            ])
+                        ])
+                    ])
+                ]))
+            ,[
+                Function(BasicPrimitive('XCOORD_LOW'),[
+                    Variable(1)
+                ])
+            ]))
+        ,[
+            Function(BasicPrimitive('YCOORD_LOW'),[
+                Variable(0)
+            ])
+        ])
+    ),
+    Variable(0)
+])
+
+p_d364b489_aux = Function(BasicPrimitive('map'),[
+    Lambda(
+        Function(Lambda(
+            Function(Lambda(
+                Function(BasicPrimitive('ADD_PIXEL'),[
+                    Variable(0),
+                    Function(BasicPrimitive('-'),[
+                        Variable(1),
+                        BasicPrimitive('1')
+                    ]),
+                    BasicPrimitive('RED'),
+                    Function(BasicPrimitive('ADD_PIXEL'),[
+                        Function(BasicPrimitive('+'),[
+                            Variable(0),
+                            BasicPrimitive('1')
+                        ]),
+                        Variable(1),
+                        BasicPrimitive('CYAN'),
+                        Variable(2)
+                    ])
+                ]))
+            ,[
+                Function(BasicPrimitive('XCOORD_LOW'),[
+                    Variable(1)
+                ])
+            ]))
+        ,[
+            Function(BasicPrimitive('YCOORD_LOW'),[
+                Variable(0)
+            ])
+        ])
+    ),
+    Variable(0)
+])
+
+p_1cf80156 = Function(BasicPrimitive('map'),[
+    Function(BasicPrimitive('TRANSLATE'),[
+        BasicPrimitive('0'),
+        BasicPrimitive('0')
+    ]),
+    Variable(0)
+])
+
+# not working
+p_a87f7484 = Function(BasicPrimitive('filter'),[
+    Lambda(
+        Function(BasicPrimitive('SAME'),[
+            Function(BasicPrimitive('DUPLICATE'),[
+                Function(BasicPrimitive('TRANSLATE'),[
+                        BasicPrimitive('0'),
+                        BasicPrimitive('0'),
+                        Variable(0)
+                ])
+            ]),
+            Function(BasicPrimitive('ROTATION90'),[
+                Function(BasicPrimitive('SYMETRY_X'),[
+                    Variable(0)
+                ])
+            ])
+        ])
+    ),
+    Variable(0)
+])
