@@ -1,0 +1,26 @@
+Nombre moyen d'objets moyen par problème par grille d'entrée : 5.090099218454923
+Nombre moyen d'objets par grille d'entrée : 4.794561933534744
+
+Nombre de problèmes : 148
+Nombre de problèmes pour lesquels la taille de la grille en entrée est conservée : 88
+Nombre de problèmes avec la même taille de grille d'entrée pour tous les exemples : 89
+Nombre total de grilles : 1316
+Nombre total de grilles d'entrée : 658
+
+Nombre de problèmes avec
+2 exemples : 19
+3 exemples : 83
+4 exemples : 30
+5 exemples : 9
+6  exemples : 4
+7 exemples : 2
+8 exemples : 1
+1 test : 138
+2 tests : 8
+3 tests : 2
+
+Nombre de problèmes contact : 26
+Nombre de problèmes contact by point : 10
+Nombre de problèmes contact and color : 53
+Nombre de problèmes contact by point and color : 26
+Nombre de problèmes color : 33

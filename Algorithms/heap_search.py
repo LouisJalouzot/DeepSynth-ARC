@@ -84,6 +84,8 @@ class heap_search_object:
         while True:
             program = self.query(self.start, self.current)
             self.current = program
+            if program == None:
+                break
             yield program
 
     def query(self, S, program):

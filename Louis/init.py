@@ -5,7 +5,6 @@ from program import *
 from pcfg import *
 from dsl import *
 
-from Louis.ARC.ARC_split import *
 from Louis.ARC.ARC import *
 from Louis.ARC.objects import *
 from Louis.sols import *

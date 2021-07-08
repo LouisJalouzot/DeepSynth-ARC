@@ -16,8 +16,10 @@ from Algorithms.bfs import bfs
 from Algorithms.sqrt_sampling import sqrt_sampling
 
 from Louis.ARC.objects import *
-from Louis.sols import *
+from Louis.ARC.main import *
+from Louis.solutions import *
 from Louis.ARC.ARC import *
+from Louis.misc import *
 
 dsl = DSL(semantics = semantics, primitive_types = primitive_types)
 #print(dsl)
@@ -72,26 +74,44 @@ def ARC():
             
     plt.show()
     
-ARC()
+# ARC()
 
 # p1 = Function(BasicPrimitive('ROTATION90'), [Variable(0)])
 # p2 = Function(BasicPrimitive('map'), [Variable(0), Variable(1)])
 # p = Function(Lambda(p2), [Lambda(p1)])
 
-# i = 2
-# with open('ARC/data/training/a87f7484.json') as json_file:
+# i = 0
+# with open('ARC/data/training/1f85a75f.json') as json_file:
 #         pb = json.load(json_file)
 #         grid = pb['train'][i]['input']
 #         display(grid)
-#         var0 = find_objects(grid, 'contact by point and color')
-#         # print(var0)
-#         # print(p_a87f7484)
-#         # objects = p_a87f7484.eval(dsl, (var0, None), p_a87f7484.__hash__)
-#         objects = p.eval_naive(dsl, (var0, None))
-#         print(p)
-#         # print(objects)
-#         display(objects_to_grid(objects))
-#         # display(pb['train'][i]['output'])
-#         # display(objects_to_grid(Function(BasicPrimitive('map'), [BasicPrimitive('ROTATION90'), Variable(0)]).eval(dsl, (var0, None), 276427)))
+#         var0 = find_objects(grid, 'color')
+#         var0[0].display()
+        # print(var0)
+        # print(p_a87f7484)
+        # objects = p_a87f7484.eval(dsl, (var0, None), p_a87f7484.__hash__)
+        # objects = p.eval_naive(dsl, (var0, None))
+        # print(p)
+        # print(objects)
+        # display(objects_to_grid(objects))
+        # display(pb['train'][i]['output'])
+        # display(objects_to_grid(Function(BasicPrimitive('map'), [BasicPrimitive('ROTATION90'), Variable(0)]).eval(dsl, (var0, None), 276427)))
         
 # plt.show()
+
+for name in solutions:
+    pb = json_read('ARC/data/training/'+name)
+    p = solutions[name]
+    print(p)
+    display_pb(pb, name)
+    for mode in pb:
+        for pair in pb[mode]:
+            objects = find_objects(pair['input'], cohesions[name], background_color[name])
+            # print(objects)
+            res = p.eval_naive(dsl, (objects, None))
+            # print(res)
+            pair['output'] = objects_to_grid(res)
+    display_pb(pb)
+    plt.show(block=False)
+    input()
+    plt.close()
