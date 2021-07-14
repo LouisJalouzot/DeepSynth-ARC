@@ -3,7 +3,7 @@ from misc import *
 from ARC.objects import *
 from grids import *
 
-l = pickle_read('data_for_nn/problems/diff_I_5_10000.pickle')
+l = pickle_read('data_for_nn/problems/diff_I_5_1000.pickle')
 i = 0
 for pb, p, c_type in l:
     if i % 5 == 0:
