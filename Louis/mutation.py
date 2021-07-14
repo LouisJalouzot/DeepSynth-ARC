@@ -1,4 +1,4 @@
-import sys, copy, matplotlib.pyplot as plt, json, pickle
+import sys, copy, matplotlib.pyplot as plt, json, pickle, copy
 sys.path.insert(0, '..')
 
 from program import *
@@ -8,6 +8,9 @@ from dsl import *
 from Louis.ARC.ARC import *
 from Louis.ARC.objects import *
 from Louis.solutions import *
+from Louis.grids import *
+
+dsl = DSL(semantics, primitive_types)
 
 # def mutate_rec(l, f, l_args, i, n):
 #     if i == 0:
@@ -111,12 +114,128 @@ def program_generator(primitive_types, sol):
         yield p
 
 
-for name in solutions:
-    i = 0
-    for p in program_generator(primitive_types, solutions[name]):
-        i += 1
-        if i > 100000:
-            break
-        # print(p)
+
+
+def build_aux(pb, p, objects, output, b_color=0):
+    new_pb = {'train': [], 'test': []}
+    for mode in objects:
+        for i in range(len(objects[mode])):
+            new_pb[mode].append({})
+            res = p.eval_naive(dsl, (objects[mode][i]['input'], None))
+            if output == 'grids':
+                new_pb[mode][i]['input'] = pb[mode][i]['input']
+                new_pb[mode][i]['output'] = objects_to_grid(res, background_color=b_color)
+            else:
+                new_pb[mode][i]['input'] = objects[mode][i]['input']
+                new_pb[mode][i]['output'] = res
+    return new_pb, p
+
+def build_aux_aux(pb, p, output):
+    new_pb = {'train': [], 'test': []}
+    for mode in pb:
+        for objects, n in pb[mode]:
+            new_pb[mode].append({})
+            res = p.eval_naive(dsl, (objects, None))
+            if output == 'grids':
+                new_pb[mode][-1]['input'] = objects_to_grid(objects, n, n)
+                new_pb[mode][-1]['output'] = objects_to_grid(res)
+            else:
+                new_pb[mode][-1]['input'] = objects
+                new_pb[mode][-1]['output'] = res
+    return new_pb, p
+
+def build_mutation_pb(size_per_sol=1000, nb_grids=10, output='grids'):
+    for name in solutions:
+        i = 0
+        pb = json_read('ARC/data/training/'+name)
+        objects = {'train': [], 'test': []}
+        for mode in pb:
+            for pair in pb[mode]:
+                objects[mode].append({'input': find_objects(pair['input'], cohesions[name], background_color[name])})
+        for p in program_generator(primitive_types, solutions[name]):
+            i += 1
+            if i > size_per_sol:
+                break
+            try:
+                new_pb, p = build_aux(pb, p, copy.deepcopy(objects), output, background_color[name])
+                yield new_pb, p
+            except:
+                try:
+                    j = 0
+                    for new_pb, _ in grid_generator(output='objects'):
+                        j += 1
+                        if j > nb_grids:
+                            break
+                        try:
+                            yield build_aux_aux(new_pb, p, output)
+                            break
+                        except:
+                            pass
+                except:
+                    pass
+
+
+# i = 0
+# for pb, p in build_mutation_pb(200):
+#     i += 1
+#     if i % 50 == 0:
+#         print(p)
+#         display_pb(pb)
+#         plt.show(block=False)
+#         if input() == '0':
+#             break
+#         plt.close()
+
+def get_types(p, t, sub_programs, env):
+    if isinstance(p, Variable(0)):
+        p.type = index(env, p.variable)
+    if isinstance(p, ):
+        return
+
+def mutate_II(p, same_type, sub_programs, env, alpha, theta):
+    get_types(p, Arrow(List(OBJ), List(OBJ)), sub_programs, env)
+    return
+
+def add_set(sub_programs, key, obj):
+    if key not in sub_programs:
+        sub_programs[key] = set(obj)
+    else:
+        sub_programs[key].add(obj)
+
+def generate_II(p, alpha=0.5, theta = 0.3):
+    same_type = {}
+    for p in primitive_types:
+        for q in primitive_types:
+            if primitive_types[p] == primitive_types[q]:
+                add_set(same_type, p, BasicPrimitive(q))
+    sub_programs = {}
+    for p in primitive_types:
+        add_set(sub_programs, primitive_types[p], p)
+
+    env = (List(OBJ), None)
+    p.type = Arrow(List(OBJ), List(OBJ))
+    for q in mutate_II(p, same_type, sub_programs, env, alpha, theta):
+        yield q
         
-    print(i)
+        
+        
+def mutate_II_brutal(p, same_type, sub_programs, alpha, theta):
+    sub_programs.add(p)
+    if np.random.rand() < theta:
+        yield np.random.choice(sub_programs)
+        
+    if isinstance(p, Variable):
+        if np.random.rand() < alpha:
+            p.variable = np.random.randint(p.variable + 1)
+    if isinstance(p, Lambda):
+        
+def generate_II_brutal(p, same_type, sub_programs, alpha=0.5, theta=0.2):
+    same_type = {}
+    for p in primitive_types:
+        for q in primitive_types:
+            if primitive_types[p] == primitive_types[q]:
+                add_set(same_type, p, BasicPrimitive(q))
+    sub_programs = set()
+    
+    for q in mutate_II_brutal(p, same_type, sub_programs, alpha, theta):
+        yield q

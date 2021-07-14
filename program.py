@@ -290,7 +290,6 @@ def reconstruct_from_compressed(program, target_type):
     program_as_list.reverse()
     return reconstruct_from_list(program_as_list, target_type)
 
-
 def list_from_compressed(program, program_as_list=[]):
     (P, sub_program) = program
     if sub_program:

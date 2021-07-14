@@ -1,4 +1,4 @@
-import sys, copy, matplotlib.pyplot as plt, json, pickle
+import sys, copy, matplotlib.pyplot as plt, json, pickle, copy
 sys.path.insert(0, '..')
 
 from program import *
@@ -9,9 +9,11 @@ from Louis.ARC.ARC import *
 from Louis.ARC.objects import *
 from Louis.solutions import *
 from Louis.misc import *
+from Louis.grids import *
 
 from Algorithms.heap_search import *
 from Algorithms.bfs_2 import *
+from Algorithms.dfs import *
 
 dsl_DS = DSL(DS_semantics, DS_primitive_types)
 dsl_paperwork = DSL(paperwork_semantics, paperwork_primitive_types)
@@ -52,24 +54,195 @@ def generate_diff_I(max_program_depth = 4):
 
 # generate_diff_I()
 
-def diff_I_generator():
-    pcfgs, cfgs = pickle_read('ARC_data/diff_I_data.pickle')
-    for type1, type2 in cfgs:
-        for p1 in bfs(cfgs[type1, type2]):
-            p1 = reconstruct_from_compressed(p1, List(OBJ))
-            for p2 in pcfgs[type1].sampling():
-                for p3 in pcfgs[type2].sampling():
-                    yield Function(Lambda(Lambda(p1)), [Lambda(p3), Lambda(p2)])
+def appears(p, i):
+    if isinstance(p, Variable):
+        return i == p.variable
+    if isinstance(p, Lambda):
+        return appears(p.body, i+1)
+    if isinstance(p, Function):
+        if appears(p.function, i):
+            return True   
+        for arg in p.arguments:
+            if appears(arg, i):
+                return True
+    return False   
 
-i = 0             
-for p in diff_I_generator():
-    i += 1
-    if i % 10000:
-        print(p)
-    if i > 100000:
-        break
-print(p)
+def decrease_vars(p, j = 0):
+    if isinstance(p, Variable):
+        if p.variable > j:
+            p.variable -= 1
+    if isinstance(p, Lambda):
+        decrease_vars(p.body, j+1)
+    if isinstance(p, Function):
+        decrease_vars(p.function, j)
+        for arg in p.arguments:
+            decrease_vars(arg, j)
+        
     
+def simplify(p):
+    if not appears(p, 2):
+        return 0
+    a, b = appears(p, 1), appears(p, 0)
+    if a and b :
+        return 3
+    elif b :
+        decrease_vars(p, 1)
+        return 1
+    elif a :
+        decrease_vars(p)
+        return 2
+    else :
+        return 0
+
+def diff_I_generator(nb_green=5, nb_red=1000):
+    pcfgs, cfgs = pickle_read('ARC_data/diff_I_data.pickle')
+    reds = {}
+    for type1, type2 in cfgs:
+        reds[type1, type2] = []
+        reds[type1] = []
+        reds[type2] = []
+    for type1, type2 in cfgs:
+        # print(type1, type2)
+        k = 0
+        for p1 in bfs(cfgs[type1, type2]):
+            k += 1
+            if k > nb_red:
+                break
+            p1 = reconstruct_from_compressed(p1, List(OBJ))
+            q1 = copy.deepcopy(p1)
+            a = simplify(q1)
+            if a == 0:
+                continue
+            if a == 1:
+                if q1 in reds[type2]: 
+                    # print('already seen')
+                    continue
+                else: reds[type2].append(q1)
+            if a == 2:
+                if q1 in reds[type1]: 
+                    # print('already seen')
+                    continue
+                else: reds[type1].append(q1)
+            if a == 3:
+                if q1 in reds[type1, type2]:
+                    # print('already seen')
+                    continue
+                else: reds[type1, type2].append(q1)
+                
+            i = 0
+            for p2 in pcfgs[type1].sampling():
+                if i > nb_green:
+                    break
+                i += 1
+                if a == 2:
+                    yield Function(Lambda(q1), [Lambda(p2)])
+                    continue
+                j = 0
+                for p3 in pcfgs[type2].sampling():
+                    if j > nb_green:
+                        break
+                    j += 1
+                    if a == 3:
+                        yield Function(Lambda(Lambda(q1)), [Lambda(p3), Lambda(p2)])
+                    if a == 1:
+                        yield Function(Lambda(q1), [Lambda(p3)])
+                if a == 1:
+                    break
+
+def diff_I_pb_generator(grids_per_program=5, nb_green=5, nb_grids=100, grids_tries=100, output='grids'):
+    good, bad = 0, 0
+    grid_gen = grid_generator(tries=grids_tries, output='objects')
+    for p in diff_I_generator(nb_green=nb_green):
+        # print(p)
+        k, success = 0, 0
+        for pb, c_type in grid_gen:
+            k += 1
+            if k > nb_grids:
+                bad += 1
+                # print('program fail', p, cohesion_types_corresp[c_type], '\n')
+                break
+            try:
+                for mode in pb:
+                    for pair in pb[mode]:
+                        objects, n, m = pair['input']
+                        # if res == objects:
+                        #     print('identity', p)
+                        #     print(res, objects)
+                        #     raise ValueError
+                        if output == 'grids':
+                            pair['input'] = objects_to_grid(objects, n, m)
+                        res = p.eval_naive(dsl, (objects, None))
+                        safe = False
+                        for obj in res:
+                            x, y = obj.low
+                            for i, j, c in obj.points:
+                                if c != 0 and 0 <= i + x < 30 and 0 <= j + y < 30:
+                                    safe = True
+                                    break
+                            if safe:
+                                break
+                        if not safe:
+                            raise ValueError
+                        if output == 'objects':
+                            pair['output'] = res, n, m
+                        else:
+                            pair['output'] = objects_to_grid(res, n, m, supple=True)
+                # display_pb(pb)
+                # print(p)
+                # plt.show(block=False)
+                # a = input()
+                # if a == '0':
+                #     return
+                # plt.close()
+                good += 1
+                yield pb, p, c_type
+                success += 1
+                if success > grids_per_program:
+                    break
+            except:
+                pass
+        # print(good, bad)
+
+
+# speed_test(diff_I_generator(), 1000)
+
+l = []
+i = 0
+n = 1000
+for data in diff_I_pb_generator(5, 25):
+    i += 1
+    l.append(data)
+    if (100 * i) % n == 0:
+        print('{}%'.format(int(100*i/n)))
+    if i > n:
+        break
+
+pickle_write('data_for_nn/problems/diff_I_5_1000.pickle', l)
+    
+
+
+# speed_test(diff_I_pb_generator(nb_green=25), 1000)
+
+# i = 0
+# for pb, p in diff_I_pb_generator(1):
+#     i += 1
+#     # print(pb)
+#     if i > 1000:
+#         break
+#     print(p)
+#     display_pb(pb)
+#     plt.show(block=False)
+#     if input() == '0':
+#         break
+#     plt.close('all')
+
+
+
+
+
+
+
+
     
 def diff_I():
     with open('ARC_data/diff_I_data.pickle', 'rb') as f:

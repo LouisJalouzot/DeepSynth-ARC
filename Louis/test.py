@@ -99,7 +99,10 @@ def ARC():
         
 # plt.show()
 
+i = 0
 for name in solutions:
+    i += 1
+    if i < 0: continue
     pb = json_read('ARC/data/training/'+name)
     p = solutions[name]
     print(p)
@@ -114,4 +117,4 @@ for name in solutions:
     display_pb(pb)
     plt.show(block=False)
     input()
-    plt.close()
+    plt.close('all')
