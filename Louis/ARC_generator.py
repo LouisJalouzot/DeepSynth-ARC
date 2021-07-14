@@ -171,7 +171,8 @@ def diff_I_pb_generator(grids_per_program=5, nb_green=5, nb_grids=100, grids_tri
                         #     raise ValueError
                         if output == 'grids':
                             pair['input'] = objects_to_grid(objects, n, m)
-                        res = p.eval_naive(dsl, (objects, None))
+                        res = p.eval_naive(dsl, (copy.deepcopy(objects), None))
+                        if res == objects: raise ValueError
                         safe = False
                         for obj in res:
                             x, y = obj.low
@@ -181,8 +182,7 @@ def diff_I_pb_generator(grids_per_program=5, nb_green=5, nb_grids=100, grids_tri
                                     break
                             if safe:
                                 break
-                        if not safe:
-                            raise ValueError
+                        if not safe: raise ValueError
                         if output == 'objects':
                             pair['output'] = res, n, m
                         else:
@@ -217,7 +217,7 @@ for data in diff_I_pb_generator(5, 25):
     if i > n:
         break
 
-pickle_write('data_for_nn/problems/diff_I_5_1000.pickle', l)
+# pickle_write('data_for_nn/problems/diff_I_5_1000.pickle', l)
     
 
 
