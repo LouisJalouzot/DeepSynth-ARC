@@ -1,308 +1,162 @@
 import sys, copy, matplotlib.pyplot as plt, json, pickle, copy
 sys.path.insert(0, '..')
-
 from program import *
 from pcfg import *
 from dsl import *
-
-from Louis.ARC.ARC import *
-from Louis.ARC.objects import *
+from Louis.ARC_data.ARC import *
+from Louis.ARC_data.objects import *
 from Louis.solutions import *
 from Louis.misc import *
 from Louis.grids import *
-
 from Algorithms.heap_search import *
-from Algorithms.bfs_2 import *
+from Louis.Algo.bfs_2 import *
 from Algorithms.dfs import *
 
 dsl_DS = DSL(DS_semantics, DS_primitive_types)
 dsl_paperwork = DSL(paperwork_semantics, paperwork_primitive_types)
 dsl = DSL(semantics, primitive_types)
-set_types = dsl_DS.instantiate_polymorphic_types(10, True)
+set_types = dsl.instantiate_polymorphic_types(10, True)
 forced_types = {OBJ, COLOR}
-# print(set_types)
-
-
-
 
 ##### Difficulty 1 #####
 def generate_diff_I(max_program_depth = 4):
-    pcfgs = {}
-    cfgs = {}
+    pcfgs, cfgs = {}, {}
     for type_ in set_types:
         try:
             type_request = Arrow(OBJ, type_)
             pcfg = dsl_DS.DSL_to_Uniform_PCFG(type_request, max_program_depth=max_program_depth, forced_types=forced_types)
             pcfgs[type_request] = pcfg
-        except:
-            print("Impossible green type :", type_)
-    
+        except: print("Impossible green type :", type_)
     for type1 in pcfgs:
         for type2 in pcfgs:
-            # for type3 in pcfgs:
             try:
                 type_request = Arrow(type1, Arrow(type2, Arrow(List(OBJ), List(OBJ))))
                 print(type_request)
                 cfg = dsl_paperwork.DSL_to_Uniform_PCFG(type_request, max_program_depth=max_program_depth, forced_types=forced_types)
-                # print(len(cfg.rules))
                 cfgs[type1, type2] = cfg
-            except:
-                print("Impossible red type : {} -> {}".format(type1, type2))
-    
+            except: print("Impossible red type : {} -> {}".format(type1, type2))
     data = pcfgs, cfgs
     pickle_write('ARC_data/diff_I_data.pickle', data)
 
 # generate_diff_I()
 
 def appears(p, i):
-    if isinstance(p, Variable):
-        return i == p.variable
-    if isinstance(p, Lambda):
-        return appears(p.body, i+1)
+    if isinstance(p, Variable): return i == p.variable
+    if isinstance(p, Lambda): return appears(p.body, i+1)
     if isinstance(p, Function):
-        if appears(p.function, i):
-            return True   
+        if appears(p.function, i): return True   
         for arg in p.arguments:
-            if appears(arg, i):
-                return True
+            if appears(arg, i): return True
     return False   
 
 def decrease_vars(p, j = 0):
     if isinstance(p, Variable):
-        if p.variable > j:
-            p.variable -= 1
-    if isinstance(p, Lambda):
-        decrease_vars(p.body, j+1)
+        if p.variable > j: p.variable -= 1
+    if isinstance(p, Lambda): decrease_vars(p.body, j+1)
     if isinstance(p, Function):
         decrease_vars(p.function, j)
-        for arg in p.arguments:
-            decrease_vars(arg, j)
-        
-    
+        for arg in p.arguments: decrease_vars(arg, j)
+         
 def simplify(p):
-    if not appears(p, 2):
-        return 0
+    if not appears(p, 2): return 0
     a, b = appears(p, 1), appears(p, 0)
-    if a and b :
+    if a and b:
         return 3
-    elif b :
+    elif b:
         decrease_vars(p, 1)
         return 1
-    elif a :
+    elif a:
         decrease_vars(p)
         return 2
-    else :
-        return 0
+    else: return 0
 
-def diff_I_generator(nb_green=5, nb_red=1000):
+def diff_I_generator(nb_green=25, nb_red=1000):
     pcfgs, cfgs = pickle_read('ARC_data/diff_I_data.pickle')
     reds = {}
     for type1, type2 in cfgs:
-        reds[type1, type2] = []
-        reds[type1] = []
-        reds[type2] = []
+        reds[type1, type2], reds[type1], reds[type2] = [], [], []
     for type1, type2 in cfgs:
-        # print(type1, type2)
         k = 0
         for p1 in bfs(cfgs[type1, type2]):
             k += 1
-            if k > nb_red:
-                break
+            if k > nb_red: break
             p1 = reconstruct_from_compressed(p1, List(OBJ))
             q1 = copy.deepcopy(p1)
             a = simplify(q1)
-            if a == 0:
-                continue
+            if a == 0: continue
             if a == 1:
-                if q1 in reds[type2]: 
-                    # print('already seen')
-                    continue
+                if q1 in reds[type2]: continue
                 else: reds[type2].append(q1)
             if a == 2:
-                if q1 in reds[type1]: 
-                    # print('already seen')
-                    continue
+                if q1 in reds[type1]: continue
                 else: reds[type1].append(q1)
             if a == 3:
-                if q1 in reds[type1, type2]:
-                    # print('already seen')
-                    continue
+                if q1 in reds[type1, type2]: continue
                 else: reds[type1, type2].append(q1)
-                
             i = 0
             for p2 in pcfgs[type1].sampling():
-                if i > nb_green:
-                    break
+                if i > nb_green: break
                 i += 1
                 if a == 2:
                     yield Function(Lambda(q1), [Lambda(p2)])
                     continue
                 j = 0
                 for p3 in pcfgs[type2].sampling():
-                    if j > nb_green:
-                        break
+                    i += 1
                     j += 1
-                    if a == 3:
-                        yield Function(Lambda(Lambda(q1)), [Lambda(p3), Lambda(p2)])
                     if a == 1:
-                        yield Function(Lambda(q1), [Lambda(p3)])
-                if a == 1:
-                    break
-
-def diff_I_pb_generator(grids_per_program=5, nb_green=5, nb_grids=100, grids_tries=100, output='grids'):
-    good, bad = 0, 0
-    grid_gen = grid_generator(tries=grids_tries, output='objects')
+                        if j > nb_green: break
+                    elif j * j > nb_green: break
+                    if a == 3: yield Function(Lambda(Lambda(q1)), [Lambda(p3), Lambda(p2)])
+                    if a == 1: yield Function(Lambda(q1), [Lambda(p3)])
+                if a == 1: break
+        
+def diff_I_pb_generator(grid_gen, grids_per_program=5, nb_green=25, nb_grids=30, output='objects', watcher_limit=5):
     for p in diff_I_generator(nb_green=nb_green):
-        # print(p)
-        k, success = 0, 0
+        success, k = 0, 0
+        watcher = {'Identity program': 0, 'Empty grid': 0, 'Objects overlap': 0}
         for pb, c_type in grid_gen:
             k += 1
-            if k > nb_grids:
-                bad += 1
-                # print('program fail', p, cohesion_types_corresp[c_type], '\n')
-                break
+            if k > nb_grids: break
             try:
-                for mode in pb:
-                    for pair in pb[mode]:
-                        objects, n, m = pair['input']
-                        # if res == objects:
-                        #     print('identity', p)
-                        #     print(res, objects)
-                        #     raise ValueError
-                        if output == 'grids':
-                            pair['input'] = objects_to_grid(objects, n, m)
-                        res = p.eval_naive(dsl, (copy.deepcopy(objects), None))
-                        if res == objects: raise ValueError
-                        safe = False
-                        for obj in res:
-                            x, y = obj.low
-                            for i, j, c in obj.points:
-                                if c != 0 and 0 <= i + x < 30 and 0 <= j + y < 30:
-                                    safe = True
-                                    break
-                            if safe:
-                                break
-                        if not safe: raise ValueError
-                        if output == 'objects':
-                            pair['output'] = res, n, m
-                        else:
-                            pair['output'] = objects_to_grid(res, n, m, supple=True)
-                # display_pb(pb)
-                # print(p)
-                # plt.show(block=False)
-                # a = input()
-                # if a == '0':
-                #     return
-                # plt.close()
-                good += 1
+                try_pb_p(dsl, p, pb)
+                if output == 'grids': pb_to_grid(pb)
                 yield pb, p, c_type
                 success += 1
-                if success > grids_per_program:
-                    break
-            except:
-                pass
-        # print(good, bad)
+                if success > grids_per_program: break
+            except GeneratorExit: return
+            except Exception as s:
+                if format(s) in watcher:
+                    watcher[format(s)] += 1
+                    bad_program = None
+                    for mis in watcher:
+                        if watcher[mis] > watcher_limit: bad_program = mis
+                    if bad_program != None: break
 
+if __name__ == '__main__':
+    speed_test(diff_I_pb_generator(grid_generator_cor(), 1), 50)
+    # for pb, p, c_type in diff_I_pb_generator(grid_generator_aux(), output='grids'):
+    #     display_pb(pb, 'Solution : '+str(p)+'\nCohesion type : '+cohesion_types_corresp[c_type])
+    #     # figManager = plt.get_current_fig_manager()
+    #     # figManager.window.showMaximized()
+    #     plt.show(block=False)
+    #     if input() == '0':
+    #         break
+    #     plt.close('all')
 
-# speed_test(diff_I_generator(), 1000)
-
-l = []
-i = 0
-n = 1000
-for data in diff_I_pb_generator(5, 25):
-    i += 1
-    l.append(data)
-    if (100 * i) % n == 0:
-        print('{}%'.format(int(100*i/n)))
-    if i > n:
-        break
-
-# pickle_write('data_for_nn/problems/diff_I_5_1000.pickle', l)
-    
-
-
-# speed_test(diff_I_pb_generator(nb_green=25), 1000)
-
-# i = 0
-# for pb, p in diff_I_pb_generator(1):
-#     i += 1
-#     # print(pb)
-#     if i > 1000:
-#         break
-#     print(p)
-#     display_pb(pb)
-#     plt.show(block=False)
-#     if input() == '0':
-#         break
-#     plt.close('all')
+    # l = []
+    # i = 0
+    # n = 10000
+    # for data in diff_I_pb_generator(grid_generator_cor(), grids_per_program=5, nb_green=25):
+    #     i += 1
+    #     l.append(data)
+    #     if i > n: break
+    #     if (100 * i) % n == 0: print('{}%'.format(int(100*i/n)))
+    # pickle_write('../../espace partage remy louis/Louis/diff_I.pickle', l)
 
 
 
 
-
-
-
-
-    
-def diff_I():
-    with open('ARC_data/diff_I_data.pickle', 'rb') as f:
-        pcfgs, cfgs = pickle.load(f)
-
-    with open('ARC/data/training/a61ba2ce.json') as json_file: #1cf80156 3de23699
-        pb = json.load(json_file)
-        objects = find_objects(pb['train'][0]['input'])
-        # display(objects_to_grid(objects))
-        # pb_ans = {}
-        # pb_ans['train'] = [p_1cf80156.eval(dsl, (find_objects(pb['train'][i]['input']), None), p_1cf80156.hash+i) for i in range(3)]
-        # pb_ans['test'] = p_1cf80156.eval(dsl, (find_objects(pb['test'][0]['input']), None), p_1cf80156.hash+3)
-        # display(objects_to_grid(p_1cf80156.eval(dsl, (find_objects(pb['train'][0]['input']), None), p_1cf80156.hash)))
-        # display(objects_to_grid(p_1cf80156.eval(dsl, (find_objects(pb['train'][1]['input']), None), p_1cf80156.hash+1)))
-        # display(objects_to_grid(p_1cf80156.eval(dsl, (find_objects(pb['train'][2]['input']), None), p_1cf80156.hash+2)))
-        # display(objects_to_grid(p_1cf80156.eval(dsl, (find_objects(pb['test'][0]['input']), None), p_1cf80156.hash+3)))
-        # plt.show()
-
-    good, bad = 0, 0
-    for type1, type2 in cfgs:
-        k = 0
-        # print("TYPE1 : {}\nTYPE2 : {}\n".format(type1, type2))
-        for p1 in bfs(cfgs[type1, type2]):
-            k += 1
-            if k > 5:
-                break
-            # print(p1)
-            # p1 : (obj -> t1) -> (obj -> t2) -> list obj -> list obj
-            p1 = Lambda(reconstruct_from_compressed(p1, List(OBJ)))
-            for _ in range(1):
-                # p2 : obj -> t1
-                p2 = heap_search(pcfgs[type1]).__next__()
-                # p3 : obj -> t2
-                p3 = heap_search(pcfgs[type2]).__next__()
-                assembled_program = Function(Lambda(Lambda(p1)), [Lambda(p3), Lambda(p2)])                       
-                try:
-                    # for i in range(3):
-                    #     grid = pb['train'][i]['input']
-                    #     res = assembled_program.eval(dsl, (find_objects(grid), None), assembled_program.hash+i)
-                    #     if res != pb_ans['train'][i]:
-                    #         raise Error
-                    # print(assembled_program)
-                    res = assembled_program.eval_naive(dsl, (copy.deepcopy(objects), None))
-                    # print(assembled_program)
-                    # print(res)
-                    res = objects_to_grid(res)
-                    good += 1
-                    if good % 700 == 0:
-                        print("Good :", assembled_program)
-                        # display(res)
-                except:
-                    if bad % 500 == 0:
-                        print("Bad :", assembled_program)
-                    bad += 1
-
-    print("good : {}\nbad : {}\nPercentage : {}%".format(good, bad, int(100 * good / (good + bad))))
-    plt.show()
-
-
-# diff_I()
 
 
 ########## Difficulty II
@@ -439,7 +293,121 @@ def diff_II_generator():
     
     
             
-            
-# for p in diff_II_generator():
-#     print(p)
-#     input()
+################################################################ OLD
+# def diff_I():
+#     with open('ARC_data/diff_I_data.pickle', 'rb') as f:
+#         pcfgs, cfgs = pickle.load(f)
+
+#     with open('ARC/data/training/a61ba2ce.json') as json_file: #1cf80156 3de23699
+#         pb = json.load(json_file)
+#         objects = find_objects(pb['train'][0]['input'])
+#         # display(objects_to_grid(objects))
+#         # pb_ans = {}
+#         # pb_ans['train'] = [p_1cf80156.eval(dsl, (find_objects(pb['train'][i]['input']), None), p_1cf80156.hash+i) for i in range(3)]
+#         # pb_ans['test'] = p_1cf80156.eval(dsl, (find_objects(pb['test'][0]['input']), None), p_1cf80156.hash+3)
+#         # display(objects_to_grid(p_1cf80156.eval(dsl, (find_objects(pb['train'][0]['input']), None), p_1cf80156.hash)))
+#         # display(objects_to_grid(p_1cf80156.eval(dsl, (find_objects(pb['train'][1]['input']), None), p_1cf80156.hash+1)))
+#         # display(objects_to_grid(p_1cf80156.eval(dsl, (find_objects(pb['train'][2]['input']), None), p_1cf80156.hash+2)))
+#         # display(objects_to_grid(p_1cf80156.eval(dsl, (find_objects(pb['test'][0]['input']), None), p_1cf80156.hash+3)))
+#         # plt.show()
+
+#     good, bad = 0, 0
+#     for type1, type2 in cfgs:
+#         k = 0
+#         # print("TYPE1 : {}\nTYPE2 : {}\n".format(type1, type2))
+#         for p1 in bfs(cfgs[type1, type2]):
+#             k += 1
+#             if k > 5:
+#                 break
+#             # print(p1)
+#             # p1 : (obj -> t1) -> (obj -> t2) -> list obj -> list obj
+#             p1 = Lambda(reconstruct_from_compressed(p1, List(OBJ)))
+#             for _ in range(1):
+#                 # p2 : obj -> t1
+#                 p2 = heap_search(pcfgs[type1]).__next__()
+#                 # p3 : obj -> t2
+#                 p3 = heap_search(pcfgs[type2]).__next__()
+#                 assembled_program = Function(Lambda(Lambda(p1)), [Lambda(p3), Lambda(p2)])                       
+#                 try:
+#                     # for i in range(3):
+#                     #     grid = pb['train'][i]['input']
+#                     #     res = assembled_program.eval(dsl, (find_objects(grid), None), assembled_program.hash+i)
+#                     #     if res != pb_ans['train'][i]:
+#                     #         raise Error
+#                     # print(assembled_program)
+#                     res = assembled_program.eval_naive(dsl, (copy.deepcopy(objects), None))
+#                     # print(assembled_program)
+#                     # print(res)
+#                     res = objects_to_grid(res)
+#                     good += 1
+#                     if good % 700 == 0:
+#                         print("Good :", assembled_program)
+#                         # display(res)
+#                 except:
+#                     if bad % 500 == 0:
+#                         print("Bad :", assembled_program)
+#                     bad += 1
+
+#     print("good : {}\nbad : {}\nPercentage : {}%".format(good, bad, int(100 * good / (good + bad))))
+#     plt.show()
+    
+# def diff_I_pb_generator(grid_gen, grids_per_program=5, nb_green=25, nb_grids=100, output='objects'):
+#     good, bad = 0, 0
+#     for p in diff_I_generator(nb_green=nb_green):
+#         k, success = 0, 0
+#         for pb, c_type in grid_gen:
+#             k += 1
+#             if k > nb_grids:
+#                 bad += 1
+#                 # print('program fail', p, cohesion_types_corresp[c_type], '\n')
+#                 break
+#             try:
+#                 for mode in pb:
+#                     for pair in pb[mode]:
+#                         objects, n, m = pair['input']
+#                         res = p.eval_naive(dsl, (copy.deepcopy(objects), None))
+#                         if res == objects: raise ValueError
+#                         safe = False
+#                         for obj in res:
+#                             x, y = obj.low
+#                             for i, j, c in obj.points:
+#                                 if c != 0 and 0 <= i + x < 30 and 0 <= j + y < 30:
+#                                     safe = True
+#                                     break
+#                             if safe:
+#                                 break
+#                         if not safe: raise ValueError
+#                         pair['output'] = res, n, m
+#                 # display_pb(pb)
+#                 # print(p)
+#                 # plt.show(block=False)
+#                 # a = input()
+#                 # if a == '0':
+#                 #     return
+#                 # plt.close()
+#                 safe = False
+#                 for pair1 in pb['train']:
+#                     if pair1['output'][0] != pb['test'][0]['output'][0]:
+#                         safe = True
+#                         break
+#                     for pair2 in pb['train']:
+#                         if pair1['output'][0] != pair2['output'][0]:
+#                             safe = True
+#                             break
+#                     if safe:
+#                         break
+#                 if not safe: raise ValueError # constant program
+#                 if output == 'grids':
+#                     for mode in pb:
+#                         for pair in pb[mode]:
+#                             for io in pair:
+#                                 objects, n, m = pair[io]
+#                                 pair[io] = objects_to_grid(objects, n, m, supple=(io=='output'))
+#                 good += 1
+#                 yield pb, p, c_type
+#                 success += 1
+#                 if success > grids_per_program:
+#                     break
+#             except:
+#                 pass
+#         # print(good, bad)

@@ -1,7 +1,8 @@
-from type_system import *
-from cons_list import index
+import os
+import sys
 
-import logging
+from type_system import Type, PolymorphicType, PrimitiveType, Arrow, List, UnknownType
+from cons_list import index
 
 # dictionary { number of environment : value }
 # environment: a cons list
@@ -11,7 +12,10 @@ import logging
 # from the non-terminal S when the underlying PCFG is G.
 
 # make sure hash is deterministic
-PYTHONHASHSEED = 0
+hashseed = os.getenv('PYTHONHASHSEED')
+if not hashseed:
+    os.environ['PYTHONHASHSEED'] = '0'
+    os.execv(sys.executable, [sys.executable] + sys.argv)
 
 class Program:
     """
@@ -289,6 +293,7 @@ def reconstruct_from_compressed(program, target_type):
     list_from_compressed(program, program_as_list)
     program_as_list.reverse()
     return reconstruct_from_list(program_as_list, target_type)
+
 
 def list_from_compressed(program, program_as_list=[]):
     (P, sub_program) = program

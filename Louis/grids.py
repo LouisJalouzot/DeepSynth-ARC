@@ -2,8 +2,8 @@ import sys, copy, matplotlib.pyplot as plt, json, pickle, numpy as np, random
 sys.path.insert(0, '..')
 
 from Louis.misc import *
-from Louis.ARC.objects import *
-from Louis.ARC.main import *
+from Louis.ARC_data.objects import *
+from Louis.ARC_data.main import *
 import pathlib, pickle, json, vose
 
 cohesion_types_corresp = {
@@ -131,7 +131,7 @@ cohesion_types = json_read('data_for_nn/cohesion_types.json')
 # json_write('data_for_nn/objects/distrib_grid_size.json', grid_size_distrib)
 
 def choice(p):
-    x = np.random.rand()
+    x = random.rand()
     cum = 0
     for i, p in enumerate(p):
         cum += p
@@ -179,9 +179,10 @@ def sanity_check(c_type, grid, i, j, c, n, m, background_color = 0):
 def grid_generator(tries = 100, background_color = 0, output = 'objects'):
     cohesions_sampler = vose.Sampler(np.array([0, 26, 10, 53, 26, 33]) / 148)
     nb_ex_sampler = vose.Sampler(np.array([0, 0, 19, 83, 30, 9]) / 141)
-    nb_objects_sampler = vose.Sampler(np.array(json_read('data_for_nn/objects/distrib_nb_obj.json')))
+    nb_objects = np.array(json_read('data_for_nn/objects/distrib_nb_obj.json'))[:9]
+    nb_objects_sampler = vose.Sampler(nb_objects / sum(nb_objects))
     size_objects_sampler = vose.Sampler(np.array(json_read('data_for_nn/objects/distrib_size_obj.json')))
-    lists_objects = pickle_read('data_for_nn/objects/lists_obj_dense.pickle')
+    lists_objects = pickle_read('data_for_nn/objects/list_objects_size.pickle')
     nb_obj = [[len(l_) for l_ in l] for l in lists_objects]
     size_grid_constant = json_read('data_for_nn/objects/distrib_grid_size_constant.json')
     size_grid = json_read('data_for_nn/objects/distrib_grid_size.json')
@@ -196,19 +197,29 @@ def grid_generator(tries = 100, background_color = 0, output = 'objects'):
     while True:
         pb = {'train': [], 'test': []}
         ex = nb_ex_sampler.sample()
-        if np.random.randint(2) == 1:
+        square = (random.randrange(3) != 0)
+        if random.randrange(2) == 1: # constant gid size
             n = size_grid_n_constant_sampler.sample()
-            m = size_grid_m_constant_sampler.sample()
+            if square: # square grids
+                m = n
+            else:
+                m = size_grid_m_constant_sampler.sample()
             pb['test'].append({'input': np.ones((n, m)) * background_color})
             for _ in range(ex):
                 pb['train'].append({'input': np.ones((n, m)) * background_color})
         else:
             n = size_grid_n_sampler.sample()
-            m = size_grid_m_sampler.sample()
+            if square:
+                m = n
+            else:
+                m = size_grid_m_sampler.sample()
             pb['test'].append({'input': np.ones((n, m)) * background_color})
             for _ in range(ex):
                 n = size_grid_n_sampler.sample()
-                m = size_grid_m_sampler.sample()
+                if square:
+                    m = n
+                else:
+                    m = size_grid_m_sampler.sample()
                 pb['train'].append({'input': np.ones((n, m)) * background_color})
         
         c_type = cohesions_sampler.sample()
@@ -219,13 +230,13 @@ def grid_generator(tries = 100, background_color = 0, output = 'objects'):
                 n, m = len(pair['input']), len(pair['input'][0])
                 nb = nb_objects_sampler.sample()
                 colors_ = [0] * 10
-                for grr in range(nb):
+                for _ in range(nb):
                     try_n = 0
                     while try_n < tries:
                         try_n += 1
                         k = size_objects_sampler.sample()
                         try:
-                            ind = np.random.randint(nb_obj[c_type][k])
+                            ind = random.randrange(nb_obj[c_type][k])
                             obj = lists_objects[c_type][k][ind]
                             if c_type == 5 and colors_[obj.color] == 1:
                                 raise StopIteration
@@ -234,7 +245,7 @@ def grid_generator(tries = 100, background_color = 0, output = 'objects'):
                             a, b = obj.rectangle_size()
                             if a > n or b > m:
                                 raise StopIteration
-                            x, y = np.random.randint(0, n - a), np.random.randint(0, m - b)
+                            x, y = random.randrange(n - a), random.randrange(m - b)
                             for i, j, c in obj.points:
                                 if pair['input'][i + x][j + y] != background_color:
                                     raise StopIteration
@@ -252,15 +263,22 @@ def grid_generator(tries = 100, background_color = 0, output = 'objects'):
                             pass
                     
                 if output == 'objects':
+                    aux.sort(key=lambda x: x.low)
                     pair['input'] = aux, n, m
         
         yield pb, c_type
         
-# for pb, _ in grid_generator(output='objects'):
+# speed_test(grid_generator(), 10000)
+        
+# for pb, c_type in grid_generator(output='objects'):
 #     for mode in pb:
 #         for pair in pb[mode]:
 #             objects, n, m = pair['input']
-#             display(objects_to_grid(objects, n, m))
+#             pair['input'] = objects_to_grid(objects, n, m)
+#             pair['output'] = [[]]
+#     display_pb(pb, cohesion_types_corresp[c_type])
+#     figManager = plt.get_current_fig_manager()
+#     figManager.window.showMaximized()
 #     plt.show(block=False)
 #     if input() == '0':
 #         break
@@ -290,6 +308,19 @@ def grid_generator(tries = 100, background_color = 0, output = 'objects'):
 #             return False
 #     obj.translate(0, 0)
 #     return True
+
+# objects = [[[] for _ in range(86)] for _ in range(6)]
+# for name in cohesion_types:
+#     pb = json_read('ARC/data/training/'+name)
+#     c_type = cohesion_types[name]
+#     for mode in pb:
+#         for pair in pb[mode]:
+#             l_obj = find_objects(pair['input'], cohesion_types_corresp[c_type])
+#             for obj in l_obj:
+#                 if sanity_objects(obj):
+#                     objects[c_type][obj.nb_points()].append(obj)
+# pickle_write('data_for_nn/objects/list_objects_size.pickle', objects)
+             
     
 
 # objects = [[] for i in range(6)]
@@ -338,17 +369,25 @@ def grid_generator(tries = 100, background_color = 0, output = 'objects'):
 # data = objects, distrib, distrib_deep
 # pickle_write('data_for_nn/objects/objects.pickle', data)
 
+# i, j = 0, 0
+# for name in cohesion_types:
+#     pb = json_read('ARC/data/training/'+name)
+#     for mode in pb:
+#         for pair in pb[mode]:
+#             j += 1
+#             if len(pair['input']) == len(pair['input'][0]):
+#                 i += 1
+# print(i, j)
 
 
 
 
 
 
-
-def grid_generator_failure(tries = 100, background_color = 0, output = 'objects'):
+def grid_generator_cor(tries = 100, background_color = 0, output = 'objects'):
     cohesions_sampler = vose.Sampler(np.array([0, 26, 10, 53, 26, 33]) / 148)
-    nb_ex_sampler = vose.Sampler(np.array([0, 19, 83, 30, 9]) / 141)
-    objects, distrib, distrib_deep = pickle_read('data_for_nn/objects/objects.pickle')
+    nb_ex_sampler = vose.Sampler(np.array([0, 0, 19, 83, 30, 9]) / 141)
+    objects, _, _ = pickle_read('data_for_nn/objects/objects.pickle')
     nb_obj = [len(obj_list) for obj_list in objects]
     size_grid_constant = json_read('data_for_nn/objects/distrib_grid_size_constant.json')
     size_grid = json_read('data_for_nn/objects/distrib_grid_size.json')
@@ -361,63 +400,81 @@ def grid_generator_failure(tries = 100, background_color = 0, output = 'objects'
     size_grid_m_constant_sampler = np.array([sum([l[j] for l in size_grid_constant]) for j in range(len(size_grid_constant[0]))])
     size_grid_m_constant_sampler = vose.Sampler(size_grid_m_constant_sampler / sum(size_grid_m_constant_sampler))
     while True:
-        pb = {'train': [], 'test': []}
-        ex = nb_ex_sampler.sample()
-        if np.random.randint(2) == 1:
-            n = size_grid_n_constant_sampler.sample()
-            m = size_grid_m_constant_sampler.sample()
-            pb['test'].append({'input': np.ones((n, m)) * background_color})
-            for _ in range(ex):
-                pb['train'].append({'input': np.ones((n, m)) * background_color})
-        else:
-            n = size_grid_n_sampler.sample()
-            m = size_grid_m_sampler.sample()
-            pb['test'].append({'input': np.ones((n, m)) * background_color})
-            for _ in range(ex):
+        try:
+            pb = {'train': [], 'test': []}
+            ex = nb_ex_sampler.sample()
+            square = (random.randrange(3) != 0)
+            if random.randrange(2) == 1: # constant grid size
+                n = size_grid_n_constant_sampler.sample()
+                if square: m = n
+                else: m = size_grid_m_constant_sampler.sample()
+                pb['test'].append({'input': np.ones((n, m)) * background_color})
+                for _ in range(ex):
+                    pb['train'].append({'input': np.ones((n, m)) * background_color})
+            else:
                 n = size_grid_n_sampler.sample()
-                m = size_grid_m_sampler.sample()
-                pb['train'].append({'input': np.ones((n, m)) * background_color})
+                if square: m = n
+                else: m = size_grid_m_sampler.sample()
+                pb['test'].append({'input': np.ones((n, m)) * background_color})
+                for _ in range(ex):
+                    n = size_grid_n_sampler.sample()
+                    if square: m = n
+                    else: m = size_grid_m_sampler.sample()
+                    pb['train'].append({'input': np.ones((n, m)) * background_color})
+            
+            c_type = cohesions_sampler.sample()
+            root_ind = random.randrange(nb_obj[c_type])
+            for mode in pb:
+                for pair in pb[mode]:
+                    aux = []
+                    n, m = len(pair['input']), len(pair['input'][0])
+                    colors_ = [0] * 10
+                    try_n = 0
+                    nb_obj_grid = 0
+                    while try_n < tries and nb_obj_grid < 8:
+                        try_n += 1
+                        try:
+                            ind = random.randrange(objects[c_type][root_ind][1])
+                            obj = objects[c_type][root_ind][2][ind]
+                            if c_type == 5 and colors_[obj.color] == 1: raise StopIteration
+                            if c_type == 5: colors_[obj.color] = 1
+                            a, b = obj.rectangle_size()
+                            if a > n or b > m: raise StopIteration
+                            x, y = random.randrange(n - a), random.randrange(m - b)
+                            for i, j, c in obj.points:
+                                if pair['input'][i + x][j + y] != background_color: raise StopIteration
+                                if sanity_check(c_type, pair['input'], i + x, j + y, c, n, m): raise StopIteration
+                            for i, j, c in obj.points: pair['input'][i + x][j + y] = c
+                            nb_obj_grid += 1
+                            
+                            if output == 'objects':
+                                new_obj = obj.duplicate()
+                                new_obj.translate(x, y)
+                                aux.append(new_obj)
+                        except: pass
+                    
+                    if nb_obj_grid == 0: raise StopIteration
+                    if output == 'objects':
+                        aux.sort(key=lambda x: x.low)
+                        pair['input'] = aux, n, m
+            
+            yield pb, c_type
+        except GeneratorExit: return
+        except: pass
         
-        c_type = cohesions_sampler.sample()
-        for mode in pb:
-            for pair in pb[mode]:
-                aux = []
-                
-                n, m = len(pair['input']), len(pair['input'][0])
-                colors_ = [0] * 10
-                try_n = 0
-                root_ind = np.random.randint(nb_obj[c_type])
-                while try_n < tries:
-                    try_n += 1
-                    try:
-                        ind = np.random.randint(objects[c_type][root_ind][1])
-                        obj = objects[c_type][root_ind][2][ind]
-                        if c_type == 5 and colors_[obj.color] == 1:
-                            raise StopIteration
-                        if c_type == 5:
-                            colors_[obj.color] = 1
-                        a, b = obj.rectangle_size()
-                        if a > n or b > m:
-                            raise StopIteration
-                        x, y = np.random.randint(0, n - a), np.random.randint(0, m - b)
-                        for i, j, c in obj.points:
-                            if pair['input'][i + x][j + y] != background_color:
-                                raise StopIteration
-                            if sanity_check(c_type, pair['input'], i + x, j + y, c, n, m):
-                                raise StopIteration
-                        for i, j, c in obj.points:
-                            pair['input'][i + x][j + y] = c
-                        
-                        if output == 'objects':
-                            new_obj = obj.duplicate()
-                            new_obj.translate(x, y)
-                            aux.append(new_obj)
-                        break
-                    except:
-                        pass
-                    root_ind = ind
-                
-                if output == 'objects':
-                    pair['input'] = aux, n, m
+# speed_test(grid_generator(), 2000)
+if __name__ == '__main__':
+    speed_test(grid_generator_cor(), 100)
         
-        yield pb, c_type
+# for pb, c_type in grid_generator_aux(10, output='objects'):
+#     for mode in pb:
+#         for pair in pb[mode]:
+#             objects, n, m = pair['input']
+#             pair['input'] = objects_to_grid(objects, n, m)
+#             pair['output'] = [[]]
+#     display_pb(pb, cohesion_types_corresp[c_type])
+#     figManager = plt.get_current_fig_manager()
+#     figManager.window.showMaximized()
+#     plt.show(block=False)
+#     if input() == '0': break
+#     plt.close()

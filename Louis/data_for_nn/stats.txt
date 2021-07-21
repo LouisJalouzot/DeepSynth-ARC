@@ -5,7 +5,9 @@ Nombre de problèmes : 148
 Nombre de problèmes pour lesquels la taille de la grille en entrée est conservée : 88
 Nombre de problèmes avec la même taille de grille d'entrée pour tous les exemples : 89
 Nombre total de grilles : 1316
+Nombre de grilles carrées : 929
 Nombre total de grilles d'entrée : 658
+Nombre de grilles d'entrée carrées : 457
 
 Nombre de problèmes avec
 2 exemples : 19

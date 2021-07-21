@@ -1,10 +1,17 @@
+import os
+import sys
+
 '''
 Objective: define a type system.
 A type can be either PolymorphicType, PrimitiveType, Arrow, or List
 '''
 
 # make sure hash is deterministic
-PYTHONHASHSEED = 0
+hashseed = os.getenv('PYTHONHASHSEED')
+if not hashseed:
+    os.environ['PYTHONHASHSEED'] = '0'
+    os.execv(sys.executable, [sys.executable] + sys.argv)
+
 class Type:
     '''
     Object that represents a type
@@ -222,7 +229,4 @@ class UnknownType(Type):
 
 INT = PrimitiveType('int')
 BOOL = PrimitiveType('bool')
-# STRING = PrimitiveType('str')
-OBJ = PrimitiveType('obj')
-COLOR = PrimitiveType('color')
-COORD = PrimitiveType('coord')
+STRING = PrimitiveType('str')

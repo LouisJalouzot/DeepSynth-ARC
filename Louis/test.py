@@ -15,10 +15,10 @@ from Algorithms.dfs import dfs
 from Algorithms.bfs import bfs
 from Algorithms.sqrt_sampling import sqrt_sampling
 
-from Louis.ARC.objects import *
-from Louis.ARC.main import *
+from Louis.ARC_data.objects import *
+from Louis.ARC_data.main import *
 from Louis.solutions import *
-from Louis.ARC.ARC import *
+from Louis.ARC_data.ARC import *
 from Louis.misc import *
 
 dsl = DSL(semantics = semantics, primitive_types = primitive_types)
@@ -100,21 +100,24 @@ def ARC():
 # plt.show()
 
 i = 0
+l = []
 for name in solutions:
     i += 1
     if i < 0: continue
     pb = json_read('ARC/data/training/'+name)
     p = solutions[name]
-    print(p)
-    display_pb(pb, name)
+    display_pb(pb)
     for mode in pb:
         for pair in pb[mode]:
             objects = find_objects(pair['input'], cohesions[name], background_color[name])
-            # print(objects)
-            res = p.eval_naive(dsl, (objects, None))
-            # print(res)
-            pair['output'] = objects_to_grid(res)
-    display_pb(pb)
+            pair['input'] = objects, len(pair['input']), len(pair['input'][0])
+    try_pb_p(dsl, p, pb)
+    pb_to_grid(pb)
+    display_pb(pb, format(p))
     plt.show(block=False)
     input()
     plt.close('all')
+    
+    if background_color[name] == 0: l.append((pb, p, cohesions[name]))
+
+# pickle_write('../../espace partage remy louis/solutions.pickle', l)
