@@ -8,7 +8,6 @@ def index(cons_list, i):
         else:
             return index(next_const_list, i-1)
     except:
-        print("Empty!")
         return None
 
 def tuple2constlist(t, i = 0):

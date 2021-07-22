@@ -19,9 +19,10 @@ class DSL:
     for P a BasicPrimitive
     """
 
-    def __init__(self, semantics, primitive_types):
+    def __init__(self, semantics, primitive_types, no_repetitions=None):
         self.list_primitives = []
         self.semantics = {}
+        self.no_repetitions = no_repetitions or set()
 
         for p in primitive_types:
             formatted_p = format(p)
@@ -63,6 +64,8 @@ class DSL:
 
         # print("set_types", set_types)
 
+        new_primitive_types = {}
+
         for P in self.list_primitives:
             assert isinstance(P, (New, BasicPrimitive))
             type_P = P.type
@@ -89,9 +92,8 @@ class DSL:
                         )
                     self.list_primitives.append(instantiated_P)
                 self.list_primitives.remove(P)
-
-        if return_set_types:
-            return set_types
+        
+        if return_set_types: return set_types
 
     def DSL_to_CFG(
         self,
@@ -150,6 +152,9 @@ class DSL:
 
             elif depth < max_program_depth:
                 for P in self.list_primitives:
+                    if isinstance(P, BasicPrimitive) and P.primitive in self.no_repetitions and \
+                            context and len(context) > 0 and context[0][0].primitive == P.primitive:
+                        continue
                     type_P = P.type
                     arguments_P = type_P.ends_with(current_type)
                     if arguments_P != None:
@@ -183,7 +188,7 @@ class DSL:
         max_program_depth=4,
         min_variable_depth=1,
         n_gram=1,
-        forced_types=set()
+        forced_types=set(),
     ):
         CFG = self.DSL_to_CFG(
             type_request,
@@ -191,7 +196,7 @@ class DSL:
             max_program_depth,
             min_variable_depth,
             n_gram,
-            forced_types
+            forced_types,
         )
         augmented_rules = {}
         for S in CFG.rules:
@@ -211,7 +216,6 @@ class DSL:
         min_variable_depth=1,
         n_gram=1,
         alpha=0.7,
-        forced_types=set()
     ):
         CFG = self.DSL_to_CFG(
             type_request,
@@ -219,7 +223,6 @@ class DSL:
             max_program_depth,
             min_variable_depth,
             n_gram,
-            forced_types
         )
         new_rules = {}
         for S in CFG.rules:

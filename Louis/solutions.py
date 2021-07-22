@@ -2,15 +2,13 @@ from type_system import *
 from program import *
 
 solutions = {
-    # singleton (TRANSLATE 0 0 (car var0))
-    '1cf80156.json': Function(BasicPrimitive('singleton'),[
+    # map (TRANSLATE 0 0) var0
+    '1cf80156.json': Function(BasicPrimitive('map'),[
         Function(BasicPrimitive('TRANSLATE'),[
             BasicPrimitive('0'),
             BasicPrimitive('0'),
-            Function(BasicPrimitive('car'),[
-                Variable(0)
-            ])
-        ])
+        ]),
+        Variable(0)
     ]),
     # singleton (TRANSLATE 0 0 (max SIZE var0))
     '1f85a75f.json': Function(BasicPrimitive('singleton'),[
@@ -191,15 +189,14 @@ solutions = {
         ])),
         Variable(0)
     ]),
-    # singleton (SYMETRY_Y (ROT90 (car var0)))
-    '74dd1130.json': Function(BasicPrimitive('singleton'),[
-        Function(BasicPrimitive('SYMETRY_X'),[
+    # map (lambda obj: SYMETRY_Y (ROT90 obj)) var0
+    '74dd1130.json': Function(BasicPrimitive('map'),[
+        Lambda(Function(BasicPrimitive('SYMETRY_X'),[
             Function(BasicPrimitive('ROTATION90'),[
-                Function(BasicPrimitive('car'),[
-                    Variable(0)
-                ])
+                Variable(0)
             ])
-        ])
+        ])),
+        Variable(0)
     ]),
     # filter (lambda obj: SAME (SYMETRY_Y obj) (TRANSLATE 0 0 obj)) var0
     '72ca375d.json': Function(BasicPrimitive('filter'),[
@@ -312,17 +309,16 @@ solutions = {
         ])),
         Variable(0)
     ]),
-    # singleton (TRANSLATE 0 0 (SYMETRY_Y (car var0)))
-    '7468f01a.json': Function(BasicPrimitive('singleton'),[
-        Function(BasicPrimitive('TRANSLATE'),[
+    # map (lambda (TRANSLATE 0 0 (SYMETRY_Y var0))) var0
+    '7468f01a.json': Function(BasicPrimitive('map'),[
+        Lambda(Function(BasicPrimitive('TRANSLATE'),[
             BasicPrimitive('0'),
             BasicPrimitive('0'),
             Function(BasicPrimitive('SYMETRY_Y'),[
-                Function(BasicPrimitive('car'),[
-                    Variable(0)
-                ])
+                Variable(0)
             ])
-        ])
+        ])),
+        Variable(0)
     ]),
     # singleton (FILL 0 0 2 2 (COLOR (max SIZE va0)))
     '5582e5ca.json': Function(BasicPrimitive('singleton'),[
@@ -345,15 +341,14 @@ solutions = {
             ])
         ])
     ]),
-    # singleton (ROT90 (ROT90 (car var0)))
-    '3c9b0459.json': Function(BasicPrimitive('singleton'),[
-        Function(BasicPrimitive('ROTATION90'),[
+    # map (lambda obj: ROT90 (ROT90 obj)) var0
+    '3c9b0459.json': Function(BasicPrimitive('map'),[
+        Lambda(Function(BasicPrimitive('ROTATION90'),[
             Function(BasicPrimitive('ROTATION90'),[
-                Function(BasicPrimitive('car'),[
-                    Variable(0)
-                ])
+                Variable(0)
             ])
-        ])
+        ])),
+        Variable(0)
     ]),
     # map (lambda obj: if ((COLOR obj) == PINK) (CHANGE_COLOR RED (DUPLICATE obj)) obj) var0
     'b1948b0a.json': Function(BasicPrimitive('map'),[
