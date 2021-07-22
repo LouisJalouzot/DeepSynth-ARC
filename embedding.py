@@ -1,4 +1,4 @@
-class Embedding():
+class Embedding(nn.Module):
     '''
     Embeds a list of pairs of grids
     '''
@@ -8,12 +8,12 @@ class Embedding():
 
     def embed_grid(self, list_objects):
         number_objects = len(list_objects)
-        grid = torch.zeros(30 * 30 * (1 + number_objects))
+        grid = torch.zeros(1 + number_objects, 30, 30)
         for index, obj in enumerate(objects):
             for i, j, c in obj.points:
                 if 0 <= i + obj.low[0] < n and 0 <= j + obj.low[1] < m and 0 <= c <= 9:
-                    grid[i + obj.low[0] + 30 * (j + obj.low[1])] = c
-                    grid[i + obj.low[0] + 30 * (j + obj.low[1]) + 30 * 30 * index] = 1
+                    grid[0, i + obj.low[0], j + obj.low[1], 0] = c
+                    grid[index, i + obj.low[0], j + obj.low[1]] = 1
         return grid
 
     def embed_IO(self, args):
