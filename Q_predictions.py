@@ -1,4 +1,4 @@
-import torch
+import torch, logging
 import torch.nn as nn
 import numpy as np
 
@@ -38,7 +38,7 @@ class Q_Predictor(nn.Module):
                                      for primitive in template_dsl.list_primitives)
         self.q_predictor = nn.Linear(H,
              self.number_of_outputs*self.number_of_parents*self.maximum_arguments)
-
+        # print(self.number_of_outputs*self.number_of_parents*self.maximum_arguments)
     def q_vector_to_dictionary(self,q):
         """
         q: size self.number_of_outputs*self.number_of_parents*self.maximum_arguments
@@ -64,7 +64,6 @@ class Q_Predictor(nn.Module):
         returns: list of PCFGs
         """
         features = self.feature_extractor(tasks)
-
         q = self.q_predictor(features)
         q_dictionary = [self.q_vector_to_dictionary(q[b])
               for b in range(len(tasks))]
@@ -83,9 +82,9 @@ class Q_Predictor(nn.Module):
             (-likelihood).backward()
             optimizer.step()
 
-            # if step % 100 == 0:
-            #     logging.debug("optimization step {}\tlog likelihood {}".format(step, likelihood))
-            #     logging.debug("grammars {}".format(grammars))
+            if step % 100 == 0:
+                logging.debug("optimization step {}\tlog likelihood {}".format(step, likelihood))
+                logging.debug("grammars {}".format(grammars))
 
     def test(self, programs, tasks):
         grammars = self(tasks)

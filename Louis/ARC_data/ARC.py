@@ -2,8 +2,6 @@ from type_system import *
 from Louis.ARC_data.objects import *
 from functools import reduce
 
-OBJ = PrimitiveType('obj')
-COLOR = PrimitiveType('color')
 t0 = PolymorphicType('t0')
 t1 = PolymorphicType('t1')
 
@@ -40,27 +38,27 @@ paperwork_primitive_types = {
 
 DS_primitive_types = {
   "BLACK": COLOR, "BLUE": COLOR, "RED": COLOR, "GREEN": COLOR, "YELLOW": COLOR, "GRAY": COLOR, "PINK": COLOR, "ORANGE": COLOR, "CYAN": COLOR, "BROWN": COLOR,
-  'SAME': Arrow(OBJ, Arrow(OBJ, BOOL)),
-  'SAME_COLOR': Arrow(OBJ, Arrow(OBJ, BOOL)),
-  'SAME_SHAPE': Arrow(OBJ, Arrow(OBJ, BOOL)),
+  # 'SAME': Arrow(OBJ, Arrow(OBJ, BOOL)),
+  # 'SAME_COLOR': Arrow(OBJ, Arrow(OBJ, BOOL)),
+  # 'SAME_SHAPE': Arrow(OBJ, Arrow(OBJ, BOOL)),
   'IS_RECTANGLE': Arrow(OBJ, BOOL),
-  'DUPLICATE': Arrow(OBJ, OBJ),
+  # 'DUPLICATE': Arrow(OBJ, OBJ),
   'TRANSLATE': Arrow(INT, Arrow(INT, Arrow(OBJ, OBJ))),
   'RELATIVE_TRANSLATE': Arrow(INT, Arrow(INT, Arrow(OBJ, OBJ))),
-  'SYMETRY_X': Arrow(OBJ, OBJ),
-  'SYMETRY_Y': Arrow(OBJ, OBJ),
+  'SYMMETRY_X': Arrow(OBJ, OBJ),
+  'SYMMETRY_Y': Arrow(OBJ, OBJ),
   'ROTATION90': Arrow(OBJ, OBJ),
   'FILL': Arrow(INT, Arrow(INT, Arrow(INT, Arrow(INT, Arrow(COLOR, OBJ))))),
   'CHANGE_COLOR': Arrow(COLOR, Arrow(OBJ, OBJ)),
   '0': INT,
   '1': INT,
   '+': Arrow(INT, Arrow(INT, INT)),
-  '-': Arrow(INT, INT), # unaire
+  '-': Arrow(INT, INT),
   'X_LOW': Arrow(OBJ, INT),
   'Y_LOW': Arrow(OBJ, INT),
   'X_HIGH': Arrow(OBJ, INT),
   'Y_HIGH': Arrow(OBJ, INT),
-  'IS_IN': Arrow(INT, Arrow(INT, Arrow(OBJ, BOOL))),
+  # 'IS_IN': Arrow(INT, Arrow(INT, Arrow(OBJ, BOOL))),
   'COLOR': Arrow(OBJ, COLOR),
   'SIZE': Arrow(OBJ, INT),
 }
@@ -93,17 +91,17 @@ paperwork_semantics = {
 
 DS_semantics = {
   "BLACK": 0, "BLUE": 1, "RED": 2, "GREEN": 3, "YELLOW": 4, "GRAY": 5, "PINK": 6, "ORANGE": 7, "CYAN": 8, "BROWN": 9,
-  'SAME': lambda obj1: lambda obj2: obj1.same(obj2, 'both'),
-  'SAME_SHAPE': lambda obj1: lambda obj2: obj1.same(obj2, 'shape'),
-  'SAME_COLOR': lambda obj1: lambda obj2: obj1.same(obj2, 'color'),
-  'DUPLICATE': lambda obj: obj.duplicate(),
-  'TRANSLATE': lambda i: lambda j: lambda obj: obj.translate(i, j, 'absolute'),
+  # 'SAME': lambda obj1: lambda obj2: obj1.same(obj2, 'both'),
+  # 'SAME_SHAPE': lambda obj1: lambda obj2: obj1.same(obj2, 'shape'),
+  # 'SAME_COLOR': lambda obj1: lambda obj2: obj1.same(obj2, 'color'),
+  # 'DUPLICATE': lambda obj: obj.duplicate(),
+  'TRANSLATE': lambda i: lambda j: lambda obj: obj.duplicate().translate(i, j, 'absolute'),
   'RELATIVE_TRANSLATE': lambda i: lambda j: lambda obj: obj.translate(i, j, 'relative'),
-  'SYMETRY_X': lambda obj: obj.symetry_x(),
-  'SYMETRY_Y': lambda obj: obj.symetry_y(),
-  'ROTATION90': lambda obj: obj.rotate(),
+  'SYMMETRY_X': lambda obj: obj.duplicate().symmetry_x(),
+  'SYMMETRY_Y': lambda obj: obj.duplicate().symmetry_y(),
+  'ROTATION90': lambda obj: obj.duplicate().rotate(),
   'FILL': lambda i: lambda j: lambda x: lambda y: lambda c: fill(i, j, x, y, c),
-  'CHANGE_COLOR': lambda c: lambda obj: obj.change_color(c),
+  'CHANGE_COLOR': lambda c: lambda obj: obj.duplicate().change_color(c),
   'IS_RECTANGLE': lambda obj: obj.is_rectangle(),
   '0': 0,
   '1': 1,
@@ -113,16 +111,16 @@ DS_semantics = {
   'Y_LOW': lambda obj: obj.low[1],
   'X_HIGH': lambda obj: obj.high[0],
   'Y_HIGH': lambda obj: obj.high[1],
-  'IS_IN': lambda i: lambda j: lambda obj: len([0 for x, y, _ in obj.points if i == x + obj.low[0] and j == y + obj.low[1]]) > 0,
+  # 'IS_IN': lambda i: lambda j: lambda obj: len([0 for x, y, _ in obj.points if i == x + obj.low[0] and j == y + obj.low[1]]) > 0,
   'COLOR': lambda obj: obj.color,
   'SIZE': lambda obj: obj.nb_points(),
 }
 
-no_repetitions = {
-  'SYMETRY_X',
-  'SYMETRY_Y',
+no_repetitions_DS = {
+  'SYMMETRY_X',
+  'SYMMETRY_Y',
   'CHANGE_COLOR',
-  'DUPLICATE',
+  # 'DUPLICATE',
   'TRANSLATE',
   'RELATIVE_TRANSLATE',
 }

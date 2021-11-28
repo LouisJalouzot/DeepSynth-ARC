@@ -109,7 +109,6 @@ class CFG:
             for P in self.rules[S]:
                 rules[S][P] = \
                 self.rules[S][P], Q[old_primitive, argument_number, P]
-
         # logging.debug('Rules of the CFG from the initial non-terminal:\n%s'%format(rules[self.start]))
 
         return LogProbPCFG(start = self.start, 

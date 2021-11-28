@@ -1,4 +1,4 @@
-import sys, copy, matplotlib.pyplot as plt, json, pickle, copy
+import sys, copy, matplotlib.pyplot as plt, json, pickle, copy, os
 sys.path.insert(0, '..')
 from program import *
 from pcfg import *
@@ -10,11 +10,10 @@ from Louis.misc import *
 from Louis.grids import *
 from Algorithms.heap_search import *
 from Louis.Algo.bfs_2 import *
-from Algorithms.dfs import *
 
-dsl_DS = DSL(DS_semantics, DS_primitive_types)
+dsl_DS = DSL(DS_semantics, DS_primitive_types, no_repetitions_DS)
 dsl_paperwork = DSL(paperwork_semantics, paperwork_primitive_types)
-dsl = DSL(semantics, primitive_types)
+dsl = DSL(semantics, primitive_types, no_repetitions_DS)
 set_types = dsl.instantiate_polymorphic_types(10, True)
 forced_types = {OBJ, COLOR}
 
@@ -36,17 +35,12 @@ def generate_diff_I(max_program_depth = 4):
                 cfgs[type1, type2] = cfg
             except: print("Impossible red type : {} -> {}".format(type1, type2))
     data = pcfgs, cfgs
-    pickle_write('ARC_data/diff_I_data.pickle', data)
-
-# generate_diff_I()
+    pickle_write(f'ARC_data/diff_I_data_{max_program_depth}.pickle', data)
 
 def appears(p, i):
     if isinstance(p, Variable): return i == p.variable
     if isinstance(p, Lambda): return appears(p.body, i+1)
-    if isinstance(p, Function):
-        if appears(p.function, i): return True   
-        for arg in p.arguments:
-            if appears(arg, i): return True
+    if isinstance(p, Function): return appears(p.function, i) or any(appears(arg, i) for arg in p.arguments)
     return False   
 
 def decrease_vars(p, j = 0):
@@ -57,62 +51,70 @@ def decrease_vars(p, j = 0):
         decrease_vars(p.function, j)
         for arg in p.arguments: decrease_vars(arg, j)
          
-def simplify(p):
+def simplify(p): #sanity checks
+    if not scan_sanity(p): return 0
     if not appears(p, 2): return 0
     a, b = appears(p, 1), appears(p, 0)
-    if a and b:
-        return 3
+    if a and b: return 3
     elif b:
         decrease_vars(p, 1)
-        return 1
+        return 2
     elif a:
         decrease_vars(p)
-        return 2
+        return 1
     else: return 0
 
-def diff_I_generator(nb_green=25, nb_red=1000):
-    pcfgs, cfgs = pickle_read('ARC_data/diff_I_data.pickle')
-    reds = {}
-    for type1, type2 in cfgs:
-        reds[type1, type2], reds[type1], reds[type2] = [], [], []
-    for type1, type2 in cfgs:
-        k = 0
-        for p1 in bfs(cfgs[type1, type2]):
-            k += 1
-            if k > nb_red: break
-            p1 = reconstruct_from_compressed(p1, List(OBJ))
-            q1 = copy.deepcopy(p1)
-            a = simplify(q1)
-            if a == 0: continue
-            if a == 1:
-                if q1 in reds[type2]: continue
-                else: reds[type2].append(q1)
-            if a == 2:
-                if q1 in reds[type1]: continue
-                else: reds[type1].append(q1)
-            if a == 3:
-                if q1 in reds[type1, type2]: continue
-                else: reds[type1, type2].append(q1)
-            i = 0
-            for p2 in pcfgs[type1].sampling():
-                if i > nb_green: break
-                i += 1
+l = []
+
+def diff_I_generator(nb_green_init=4000, nb_red=10000, max_program_depth=3):
+    for max_depth in range(3, max_program_depth + 1):
+        pcfgs, cfgs = pickle_read(f'ARC_data/diff_I_data_{max_depth}.pickle')
+        reds = {}
+        for type1, type2 in cfgs:
+            reds[type1, type2], reds[type1], reds[type2] = [], [], []
+        for type1, type2 in cfgs:
+            k = 0
+            for p1 in bfs(cfgs[type1, type2]):
+                k += 1
+                if k > nb_red: break
+                p1 = reconstruct_from_compressed(p1, List(OBJ))
+                q1 = copy.deepcopy(p1)
+                a = simplify(q1)
+                if a == 0: continue
+                if program_size(q1) > 7: continue
+                if a == 1:
+                    if q1 in reds[type2]: continue
+                    else: reds[type2].append(q1)
                 if a == 2:
-                    yield Function(Lambda(q1), [Lambda(p2)])
-                    continue
-                j = 0
-                for p3 in pcfgs[type2].sampling():
+                    if q1 in reds[type1]: continue
+                    else: reds[type1].append(q1)
+                if a == 3:
+                    if q1 in reds[type1, type2]: continue
+                    else: reds[type1, type2].append(q1)
+                i = 0
+                nb_green = max(nb_green_init // (program_size(q1) ** 2), 1)
+                l.append((q1, type1, type2, a))
+                for p2 in pcfgs[type1].sampling():
                     i += 1
-                    j += 1
-                    if a == 1:
-                        if j > nb_green: break
-                    elif j * j > nb_green: break
-                    if a == 3: yield Function(Lambda(Lambda(q1)), [Lambda(p3), Lambda(p2)])
-                    if a == 1: yield Function(Lambda(q1), [Lambda(p3)])
-                if a == 1: break
+                    if i > nb_green: break
+                    if a != 1 and not appears(p2, 0): continue
+                    if a == 2:
+                        yield Function(Lambda(q1), [Lambda(p2)])
+                        continue
+                    j = 0
+                    for p3 in pcfgs[type2].sampling():
+                        i += 1
+                        j += 1
+                        if a == 1:
+                            if j > nb_green: break
+                        elif j * j > nb_green: break
+                        if not appears(p3, 0): continue
+                        if a == 3: yield Function(Lambda(Lambda(q1)), [Lambda(p3), Lambda(p2)])
+                        if a == 1: yield Function(Lambda(q1), [Lambda(p3)])
+                    if a == 1: break
         
-def diff_I_pb_generator(grid_gen, grids_per_program=5, nb_green=25, nb_grids=30, output='objects', watcher_limit=5):
-    for p in diff_I_generator(nb_green=nb_green):
+def diff_I_pb_generator(grid_gen, grids_per_program=5, nb_green_init=2000, nb_grids=30, output='objects', watcher_limit=5):
+    for p in diff_I_generator(nb_green_init=nb_green_init):
         success, k = 0, 0
         watcher = {'Identity program': 0, 'Empty grid': 0, 'Objects overlap': 0}
         for pb, c_type in grid_gen:
@@ -134,7 +136,17 @@ def diff_I_pb_generator(grid_gen, grids_per_program=5, nb_green=25, nb_grids=30,
                     if bad_program != None: break
 
 if __name__ == '__main__':
-    speed_test(diff_I_pb_generator(grid_generator_cor(), 1), 50)
+    generate_diff_I(3)
+    # speed_test(diff_I_generator(nb_green_init=1), 10)
+    i = 0
+    for p in diff_I_generator(nb_green_init=1):
+        i += 1
+        print(p)
+        if input() == '0': break
+    # l = pickle_read('data_for_nn/diff_I_red_depth3.pickle')
+    # for data in l: print(data)
+    # speed_test(diff_I_pb_generator(grid_generator_cor()), 50)
+    # speed_test(diff_I_generator(nb_green=1, nb_red=1000000), 100)
     # for pb, p, c_type in diff_I_pb_generator(grid_generator_aux(), output='grids'):
     #     display_pb(pb, 'Solution : '+str(p)+'\nCohesion type : '+cohesion_types_corresp[c_type])
     #     # figManager = plt.get_current_fig_manager()
@@ -146,13 +158,25 @@ if __name__ == '__main__':
 
     # l = []
     # i = 0
-    # n = 10000
-    # for data in diff_I_pb_generator(grid_generator_cor(), grids_per_program=5, nb_green=25):
+    # n = 100000
+    # for data in diff_I_pb_generator(grid_generator_cor()):
     #     i += 1
     #     l.append(data)
     #     if i > n: break
     #     if (100 * i) % n == 0: print('{}%'.format(int(100*i/n)))
-    # pickle_write('../../espace partage remy louis/Louis/diff_I.pickle', l)
+    # print(i)
+    # pickle_write('../../espace partage remy louis/Louis/diff_I_cor.pickle', l)
+    
+    # l = []
+    # i = 0
+    # n = 100000
+    # for data in diff_I_pb_generator(grid_generator()):
+    #     i += 1
+    #     l.append(data)
+    #     if i > n: break
+    #     if (100 * i) % n == 0: print('{}%'.format(int(100*i/n)))
+    # print(i)
+    # pickle_write('../../espace partage remy louis/Louis/diff_I_rand.pickle', l)
 
 
 

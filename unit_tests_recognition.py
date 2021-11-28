@@ -1,27 +1,19 @@
-import logging
-import unittest
-import random
-import copy
-import torch
-import torch.nn as nn
-import numpy as np
-import torch.nn.functional as F
+import logging, unittest, random, copy, torch, torch.nn as nn, numpy as np, torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 
 from type_system import Type, PolymorphicType, PrimitiveType, Arrow, List, UnknownType, INT, BOOL
 from program import Program, Function, Variable, BasicPrimitive, New
 from dsl import DSL
 from pcfg_logprob import LogProbPCFG
-from embedding import RecurrentFeatureExtractor
+from embedding import Embedding
 from pcfg_predictions import PCFG_Predictor
 from Q_predictions import Q_Predictor
 
 logging_levels = {0:logging.INFO, 1:logging.DEBUG}
-
 verbosity = 0
 logging.basicConfig(format='%(message)s', level=logging_levels[verbosity])
 
-class TestSum(unittest.TestCase):
+class TestSum(): # unittest.TestCase
     def test_predictions_noinputs(self):
         primitive_types = {
             "if": Arrow(BOOL, Arrow(INT, INT)),
@@ -56,9 +48,9 @@ class TestSum(unittest.TestCase):
 
         H = 128 # hidden size of neural network
         lexicon = list(range(10)) # all elements in range(10)
-        fe = RecurrentFeatureExtractor(lexicon=lexicon,
-                                       H=H,
-                                       bidirectional=True)
+        fe = None #RecurrentFeatureExtractor(lexicon=lexicon,
+                                    #    H=H,
+                                    #    bidirectional=True)
 
         PCFG_predictor = PCFG_Predictor(
             fe,
@@ -107,7 +99,7 @@ class TestSum(unittest.TestCase):
             "1": 1,
             "and": lambda b1: lambda b2: b1 and b2,
             "lt": lambda x: lambda y: x <= y,
-            "map": lambda l: list(map(f, l)),
+            "map": lambda f: lambda l: list(map(f, l)),
         }
 
         template_dsl = DSL(semantics, primitive_types)
@@ -120,9 +112,9 @@ class TestSum(unittest.TestCase):
 
         H = 128 # hidden size of neural network
         lexicon = list(range(10))
-        fe = RecurrentFeatureExtractor(lexicon=lexicon,
-                                       H=H,
-                                       bidirectional=True)
+        fe = None # RecurrentFeatureExtractor(lexicon=lexicon,
+                                    #    H=H,
+                                    #    bidirectional=True)
 
         list_variables = [
         Variable(i, type_, probability={})
@@ -210,6 +202,55 @@ class TestSum(unittest.TestCase):
         PCFG_predictor.test(programs, tasks)
         Q_predictor.train(programs, tasks)
         Q_predictor.test(programs, tasks)
+
+from Louis.misc import *
+from Louis.solutions import *
+class TestARC(unittest.TestCase):
+    def test_predictions_with_inputs(self):
+        template_dsl = DSL(semantics, primitive_types, no_repetitions_DS)
+        type_request = Arrow(List(OBJ), List(OBJ))
+        template_cfg = template_dsl.DSL_to_CFG(type_request=type_request, 
+                                      upper_bound_type_size=10,
+                                      max_program_depth=4, 
+                                      min_variable_depth=1,
+                                      n_gram = 1)
+
+        list_variables = [
+        Variable(i, type_, probability={})
+        for i,type_ in enumerate(type_request.arguments())
+        ]
+
+        PCFG_predictor = PCFG_Predictor(
+            Embedding(),
+            template_cfg=template_cfg
+            )
+
+        Q_predictor = Q_Predictor(
+            Embedding(),
+            template_dsl=template_dsl,
+            template_cfg=template_cfg,
+            list_variables=list_variables,
+            )
+
+        programs = [solutions[name] for name in solutions]
+        
+        tasks = []
+        for name in solutions:
+            pb = json_read('Louis/ARC/data/training/'+name)
+            c_type = cohesions[name]
+            task = []
+            for mode in pb:
+                for pair in pb[mode]:
+                    x = find_objects(pair['input'], c_type)
+                    y = find_objects(pair['output'], c_type)
+                    task.append((x, y))
+            tasks.append(task)
+            break
+        print('output_dimensionality: "=', Embedding()(tasks[:1]).shape)
+        # PCFG_predictor.train(programs, tasks)
+        # PCFG_predictor.test(programs, tasks)
+        Q_predictor.train(programs, tasks)
+        # Q_predictor.test(programs, tasks)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

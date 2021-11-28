@@ -21,7 +21,6 @@ class Program:
     """
     Object that represents a program: a lambda term with basic primitives
     """
-
     def __eq__(self, other):
         return (
             isinstance(self, Program)
@@ -98,6 +97,8 @@ class Variable(Program):
         # assert isinstance(type_, Type)
         self.type = type_
         self.hash = variable
+        self.depth = 1
+        self.size = 1
 
         self.probability = probability
         self.evaluation = {}
@@ -126,13 +127,15 @@ class Variable(Program):
             return None
 
 class Function(Program):
-    def __init__(self, function, arguments, type_=UnknownType(), probability={}):
+    def __init__(self, function, arguments, type_=UnknownType(), probability={}, depth=None, size=None):
         # assert isinstance(function, Program)
         self.function = function
         # assert isinstance(arguments, list)
         self.arguments = arguments
         self.type = type_
         self.hash = hash(tuple([arg.hash for arg in self.arguments] + [self.function.hash]))
+        self.depth = depth
+        self.size = size
 
         self.probability = probability
         self.evaluation = {}
@@ -185,12 +188,14 @@ class Function(Program):
             return None
 
 class Lambda(Program):
-    def __init__(self, body, type_=UnknownType(), probability={}):
+    def __init__(self, body, type_=UnknownType(), probability={}, depth=None, size=None):
         # assert isinstance(body, Program)
         self.body = body
         # assert isinstance(type_, Type)
         self.type = type_
         self.hash = hash(94135 + body.hash)
+        self.depth = depth
+        self.size = None
 
         self.probability = probability
         self.evaluation = {}
@@ -226,6 +231,8 @@ class BasicPrimitive(Program):
         # assert isinstance(type_, Type)
         self.type = type_
         self.hash = hash(primitive) + self.type.hash
+        self.depth = 1
+        self.size = 1
 
         self.probability = probability
         self.evaluation = {}
@@ -240,10 +247,12 @@ class BasicPrimitive(Program):
         return dsl.semantics[self.primitive]
 
 class New(Program):
-    def __init__(self, body, type_=UnknownType(), probability={}):
+    def __init__(self, body, type_=UnknownType(), probability={}, depth=None, size=None):
         self.body = body
         self.type = type_
         self.hash = hash(783712 + body.hash) + type_.hash
+        self.depth = depth
+        self.size = size
 
         self.probability = probability
         self.evaluation = {}
@@ -300,3 +309,22 @@ def list_from_compressed(program, program_as_list=[]):
     if sub_program:
         list_from_compressed(sub_program, program_as_list)
     program_as_list.append(P)
+
+def program_depth(p):
+    if p.depth != None: return p.depth
+    elif isinstance(p, Function):
+        if p.arguments == []: d_arg = 0
+        else: d_arg = max(program_depth(arg) for arg in p.arguments)
+        p.depth = max(program_depth(p.function), d_arg + 1)
+    elif isinstance(p, (Lambda, New)):  p.depth = program_depth(p.body)
+    else: p.depth = 1
+    return p.depth
+
+def program_size(p):
+    if p .size != None: return p.size
+    elif isinstance(p, Function):
+        p.size = program_size(p.function)
+        for arg in p.arguments: p.size += program_size(arg)
+    elif isinstance(p, Lambda): p.size = program_size(p.body)
+    else: p.size = 1
+    return p.size

@@ -3,7 +3,6 @@ sys.path.insert(0, '..')
 
 from Louis.misc import *
 from Louis.ARC_data.objects import *
-from Louis.ARC_data.main import *
 import pathlib, pickle, json, vose
 
 cohesion_types_corresp = {
@@ -23,7 +22,7 @@ cohesion_types_corresp = {
 #     pickle.dump(all_training_problems, f)
 
 # names = json_read('data_for_nn/pb_names.json')
-cohesion_types = json_read('data_for_nn/cohesion_types.json')
+# cohesion_types = json_read('data_for_nn/cohesion_types.json')
 
 ################################################################ Classification cohesion types for each pb
 # print(len(cohesion_types))
@@ -178,7 +177,7 @@ def sanity_check(c_type, grid, i, j, c, n, m, background_color = 0):
 
 def grid_generator(tries = 100, background_color = 0, output = 'objects'):
     cohesions_sampler = vose.Sampler(np.array([0, 26, 10, 53, 26, 33]) / 148)
-    nb_ex_sampler = vose.Sampler(np.array([0, 0, 19, 83, 30, 9]) / 141)
+    nb_ex_sampler = vose.Sampler(np.array([0, 0, 19, 83, 30, 9, 1]) / 142)
     nb_objects = np.array(json_read('data_for_nn/objects/distrib_nb_obj.json'))[:9]
     nb_objects_sampler = vose.Sampler(nb_objects / sum(nb_objects))
     size_objects_sampler = vose.Sampler(np.array(json_read('data_for_nn/objects/distrib_size_obj.json')))
@@ -386,7 +385,7 @@ def grid_generator(tries = 100, background_color = 0, output = 'objects'):
 
 def grid_generator_cor(tries = 100, background_color = 0, output = 'objects'):
     cohesions_sampler = vose.Sampler(np.array([0, 26, 10, 53, 26, 33]) / 148)
-    nb_ex_sampler = vose.Sampler(np.array([0, 0, 19, 83, 30, 9]) / 141)
+    nb_ex_sampler = vose.Sampler(np.array([0, 0, 19, 83, 30, 9, 1]) / 142)
     objects, _, _ = pickle_read('data_for_nn/objects/objects.pickle')
     nb_obj = [len(obj_list) for obj_list in objects]
     size_grid_constant = json_read('data_for_nn/objects/distrib_grid_size_constant.json')
@@ -464,7 +463,13 @@ def grid_generator_cor(tries = 100, background_color = 0, output = 'objects'):
         
 # speed_test(grid_generator(), 2000)
 if __name__ == '__main__':
-    speed_test(grid_generator_cor(), 100)
+    objects, _, _ = pickle_read('data_for_nn/objects/objects.pickle')
+    i = 0
+    objects = objects[1:]
+    for c in objects:
+        for l in c:
+            i += len(l)
+    print(i)
         
 # for pb, c_type in grid_generator_aux(10, output='objects'):
 #     for mode in pb:

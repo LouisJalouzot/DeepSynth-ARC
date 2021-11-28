@@ -1,15 +1,16 @@
 from type_system import *
 from program import *
+from Louis.ARC_data.ARC import *
 
 solutions = {
     # map (TRANSLATE 0 0) var0
-    '1cf80156.json': Function(BasicPrimitive('map'),[
-        Function(BasicPrimitive('TRANSLATE'),[
-            BasicPrimitive('0'),
-            BasicPrimitive('0'),
-        ]),
-        Variable(0)
-    ]),
+    '1cf80156.json': Function(BasicPrimitive('map', Arrow(Arrow(OBJ, OBJ), Arrow(List(OBJ), List(OBJ)))),[
+        Function(BasicPrimitive('TRANSLATE', Arrow(INT, Arrow(INT, Arrow(OBJ, OBJ)))),[
+            BasicPrimitive('0', INT),
+            BasicPrimitive('0', INT),
+        ], Arrow(OBJ, OBJ)),
+        Variable(0, List(OBJ))
+    ], Arrow(List(OBJ), List(OBJ))),
     # singleton (TRANSLATE 0 0 (max SIZE var0))
     '1f85a75f.json': Function(BasicPrimitive('singleton'),[
         Function(BasicPrimitive('TRANSLATE'),[
@@ -109,9 +110,7 @@ solutions = {
                         BasicPrimitive('1')
                     ])
                 ]),
-                Function(BasicPrimitive('DUPLICATE'),[
-                    Variable(1)
-                ])
+                Variable(1)
             ]),
             Function(BasicPrimitive('singleton'),[
                 Variable(1)
@@ -160,13 +159,6 @@ solutions = {
             Function(BasicPrimitive('COLOR'),[
                 Variable(0)
             ])
-        ])),
-        Variable(0)
-    ]),
-    # map (lambda obj: ROTATION90 (ROTATION90 (ROTATION90 var0))) var0
-    'ed36ccf7.json': Function(BasicPrimitive('map'),[
-        Lambda(Function(BasicPrimitive('ROTATION90'),[
-            Variable(0)
         ])),
         Variable(0)
     ]),
@@ -547,6 +539,12 @@ background_color = {
     'd511f180.json': 0,
     'a87f7484.json': 0,
 }
+
+# map ROTATION90 var0
+    # 'ed36ccf7.json': Function(BasicPrimitive('map'),[
+    #     BasicPrimitive('ROTATION90'),
+    #     Variable(0)
+    # ]),
 
 # # map (lambda o: (TRANSLATE 0 ((YCOORD_HIGH o) - (YCOORD_LOW o) + 1) (DUPLICATE (TRANSLATE 0 0 o))) var0
 # p_28bf18c6 = Function(BasicPrimitive('cons'),[

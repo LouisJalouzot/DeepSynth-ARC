@@ -29,13 +29,12 @@ def mutate_list(l, i, n):
 def mutate(p):
     if isinstance(p, BasicPrimitive):
         for q in same_type[p.primitive]: yield q
-    elif isinstance(p, Variable):
-        for i in range(p.variable + 1): yield Variable(i)
     elif isinstance(p, Lambda):
         for q in mutate(p.body): yield Lambda(q)
     elif isinstance(p, Function):
         for f in mutate(p.function):
             for _ in mutate_list(p.arguments, 0, len(p.arguments)): yield Function(f, p.arguments)
+    else: yield p
 
 
 def build_mutation_pb(max_search=1000000, nb_mutants=1000, nb_grids=5, nb_tries_grids=100, grids_tries=100, output='grids'):
@@ -88,8 +87,13 @@ def build_mutation_pb(max_search=1000000, nb_mutants=1000, nb_grids=5, nb_tries_
 if __name__ == '__main__':
     # speed_test(mutate(solutions['88a10436.json']), 80000)       
     # speed_test(build_mutation_pb(), 10000)
-
+    p = solutions['88a10436.json']
     i = 0
+    for q in mutate(p):
+        i += 1
+        if i % 1000 == 0:
+            print(q)
+            if input() == '0': break
     # l = []
     # for data in build_mutation_pb(nb_mutants=10, nb_grids=1):
     #     i += 1

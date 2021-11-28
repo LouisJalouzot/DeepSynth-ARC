@@ -65,7 +65,7 @@ class EnhancedProgram(Program):
     def __hash__(self): return hash((self.p.hash, hash(self.env_types)))
     def __repr__(self): return format(self.env_types)+'|- '+format(self.p)+': '+format(self.type)
 
-def pb_unif_gen(p, env=(List(OBJ), None)):
+def pb_unif_gen(p, env=(List(OBJ), None), dont_add=False):
     global fresh_var, sub_prog, pb_unif
     if isinstance(p, Variable): new_t = index(env, p.variable)
     elif isinstance(p, BasicPrimitive): new_t = primitive_types[p.primitive]
@@ -85,7 +85,7 @@ def pb_unif_gen(p, env=(List(OBJ), None)):
             new_env = (t_arg, new_env)
         t_fun = pb_unif_gen(p.function, new_env)
         pb_unif.append((t_fun, arr))
-    if not isinstance(p, Lambda) and not isinstance(p, Variable):
+    if not isinstance(p, Lambda) and not isinstance(p, Variable) and not dont_add:
         p_e = EnhancedProgram(p, env, new_t)
         if p_e.depth < max_d_col: sub_prog.add(p_e)
     return new_t
@@ -152,11 +152,11 @@ def replace_subst_env(env):
     t, env = env
     return replace_subst(t), replace_subst_env(env)
 
-def unify_mut(p, type_request=Arrow(List(OBJ), List(OBJ))):
+def unify_mut(p, type_request=Arrow(List(OBJ), List(OBJ)), dont_add=False):
     global fresh_var, sub_prog, pb_unif, subst
     fresh_var, sub_prog, pb_unif, subst = 0, set(), [], {}
     for primitive in primitive_types: primitive_types[primitive] = replace(primitive_types[primitive], {})
-    t = pb_unif_gen(p, (type_request.type_in, None))
+    t = pb_unif_gen(p, (type_request.type_in, None), dont_add=dont_add)
     pb_unif.append((t, type_request.type_out))
     try: unify()
     except Exception: return
@@ -197,14 +197,17 @@ def gen_data_sample(nb_mutants=0):
     global subst
     sub_prog_glob = set()
     for name in solutions:
-        ans = unify_mut(solutions[name])
+        ans = unify_mut(solutions[name], dont_add=True)
         if ans != None: sub_prog_glob |= ans
+    sub_prog_aux = set()
+    for e_p in sub_prog_glob:
         i = 0
-        for p in mutate(solutions[name]):
+        for p in mutate(e_p.p):
             i += 1
             if i > nb_mutants: break
-            ans = unify_mut(p)
-            if ans != None: sub_prog_glob |= ans
+            new_e_p = EnhancedProgram(p, e_p.env_types, e_p.type)
+            sub_prog_aux.add(new_e_p)
+    sub_prog_glob |= sub_prog_aux
     end_types = {}
     for p_e in sub_prog_glob:
         t = end_type(p_e.type)
@@ -268,23 +271,23 @@ def sample_mutate(end_types, type_request, env, poly_corresp, depth=0, depth_max
          
 def sample_mutate_glob(type_request=List(OBJ), env=[List(OBJ)], depth_min=3, depth_max=10):
     end_types = pickle_read('data_for_nn/end_types.pickle')
-    i = 0
-    for t in end_types:
-        print("#####", t)
-        for p_e in end_types[t]['programs']:
-            i += 1
-            print(p_e)
-    print(i)
+    # i = 0
+    # for t in end_types:
+    #     print("#####", t)
+    #     for p_e in end_types[t]['programs']:
+    #         i += 1
+    #         print(p_e)
+    # print(i)
     i = 0
     while True:
         try:
             p = sample_mutate(end_types, type_request, env, {}, depth_max=depth_max)
-            _, depth = analyze_var(p)
+            d = program_depth(p)
             if contains(p, 'singleton'):
                 if random.random() > .01: raise Exception
-            if depth == depth_min :
+            if d == depth_min :
                 if random.random() > .5: raise Exception
-            if depth_max >= depth >= depth_min:
+            if depth_max >= d >= depth_min:
                 yield p, i
                 i = 0
             else: i += 1
@@ -312,28 +315,27 @@ def mutate_pb_generator(grid_gen, grids_per_program=1, nb_grids=30, output='obje
             k += 1
 
 if __name__ == "__main__":
-    # gen_data_sample()
-    for data in sample_mutate_glob():
-        print(data)
-        if input() == '0': break
+    # gen_data_sample(100)
+    # for data in sample_mutate_glob():
+    #     print(data)
+    #     if input() == '0': break
     # speed_test(sample_mutate_glob(), 1000)
     # speed_test(mutate_pb_generator(grid_generator_cor()), 500)
-    # speed_test(mutate_pb_generator_aux(grid_generator_cor()), 500)
-    # i, n = 0, 10000
-    # l = []
-    # for pb, p, c_type in mutate_pb_generator(grid_generator_cor()):
-    #     i += 1
-    #     if i > n: break
-    #     l.append((pb, p, c_type))
-    #     if (100 * i) % n == 0:
-    #         print('{}%'.format(int(100*i/n)))
-    # pickle_write('../../espace partage remy louis/Louis/mutation.pickle', l)
-        # display_pb(pb, format(p))
-        # figManager = plt.get_current_fig_manager()
-        # figManager.window.showMaximized()
-        # plt.show(block=False)
-        # if input() == '0': break
-        # plt.close('all')
+    i, n = 0, 10000
+    l = []
+    for pb, p, c_type in mutate_pb_generator(grid_generator()):
+        i += 1
+        if i > n: break
+        l.append((pb, p, c_type))
+        if (100 * i) % n == 0:
+            print('{}%'.format(int(100*i/n)))
+    pickle_write('../../espace partage remy louis/Louis/mutation_rand.pickle', l)
+    #     display_pb(pb, format(p))
+    #     figManager = plt.get_current_fig_manager()
+    #     figManager.window.showMaximized()
+    #     plt.show(block=False)
+    #     if input() == '0': break
+    #     plt.close('all')
     
     
     

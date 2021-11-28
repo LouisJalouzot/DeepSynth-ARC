@@ -20,6 +20,7 @@ from Louis.ARC_data.main import *
 from Louis.solutions import *
 from Louis.ARC_data.ARC import *
 from Louis.misc import *
+from Louis.grids import *
 
 dsl = DSL(semantics = semantics, primitive_types = primitive_types)
 #print(dsl)
@@ -99,25 +100,56 @@ def ARC():
         
 # plt.show()
 
-i = 0
-l = []
-for name in solutions:
-    i += 1
-    if i < 0: continue
-    pb = json_read('ARC/data/training/'+name)
-    p = solutions[name]
-    display_pb(pb)
-    for mode in pb:
-        for pair in pb[mode]:
-            objects = find_objects(pair['input'], cohesions[name], background_color[name])
-            pair['input'] = objects, len(pair['input']), len(pair['input'][0])
-    try_pb_p(dsl, p, pb)
-    pb_to_grid(pb)
-    display_pb(pb, format(p))
-    plt.show(block=False)
-    input()
-    plt.close('all')
+# i = 0
+# l = []
+# for name in solutions:
+#     i += 1
+#     if i < 0: continue
+#     pb = json_read('ARC/data/training/'+name)
+#     p = solutions[name]
+#     display_pb(pb)
+#     for mode in pb:
+#         for pair in pb[mode]:
+#             objects = find_objects(pair['input'], cohesions[name], background_color[name])
+#             pair['input'] = objects, len(pair['input']), len(pair['input'][0])
+#     try_pb_p(dsl, p, pb)
+#     pb_to_grid(pb)
+#     display_pb(pb, format(p))
+#     plt.show(block=False)
+#     input()
+#     plt.close('all')
     
-    if background_color[name] == 0: l.append((pb, p, cohesions[name]))
+#     if background_color[name] == 0: l.append((pb, p, cohesions[name]))
 
 # pickle_write('../../espace partage remy louis/solutions.pickle', l)
+
+name = '3de23699'
+pb = json_read('ARC/data/training/'+name+'.json')
+k = 0
+for x, _ in grid_generator(1000):
+    for mode in pb:
+        for pair in pb[mode]:
+            for io in pair:
+            # for obj in pair['input'][0]:
+            #     if obj.nb_points() < 5: continue
+            #     obj.points = [(0, 0, 3), (1, 0, 3), (0, 1, 3), (1, 2, 6), (2, 1, 6)]
+                img = pair[io]
+                display(img)
+                plt.show(block=False)
+                if input() == '0':
+                    plt.close('all')
+                    plt.gca().set_axis_off()
+                    plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, hspace = 0, wspace = 0)
+                    plt.margins(0,0)
+                    plt.gca().xaxis.set_major_locator(plt.NullLocator())
+                    plt.gca().yaxis.set_major_locator(plt.NullLocator())
+                    n, m = len(img), len(img[0])
+                    img_ = np.zeros((max(n, m), max(n, m)))
+                    for i in range(n):
+                        for j in range(m): img_[n - i - 1][j] = img[i][j]
+                    plt.pcolormesh(img_, cmap=cmap, norm=norm, edgecolor='xkcd:dark gray', linewidth=.01)
+                    # plt.show()
+                    plt.savefig(f"{k}.png", bbox_inches='tight', pad_inches=0.0)
+                    k += 1
+                plt.close('all')
+    break

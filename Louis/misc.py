@@ -1,5 +1,6 @@
 import json, pickle, time, copy
 from Louis.ARC_data.objects import *
+from program import *
 
 def pickle_read(filename):
     with open(filename, 'rb') as f:
@@ -58,4 +59,22 @@ def pb_to_grid(pb):
         for pair in pb[mode]:
             objects, n, m = pair['input']
             pair['input'] = objects_to_grid(objects, n, m)
-            pair['output'] = objects_to_grid(pair['output'], n, m, supple=True)
+            try: pair['output'] = objects_to_grid(pair['output'], n, m, supple=True)
+            except: pair['output'] = [[]]
+            
+def appear_var(p):
+    if isinstance(p, Variable): return True
+    if isinstance(p, Lambda): return appear_var(p.body)
+    if isinstance(p, Function): return appear_var(p.function) or any(appear_var(arg) for arg in p.arguments)
+    return False 
+            
+def scan_sanity(p):
+    if isinstance(p, Function):
+        if isinstance(p.function, BasicPrimitive):
+            if p.function.primitive == 'if':
+                if not appear_var(p.arguments[0]): return False
+                if len(p.arguments) > 2 and p.arguments[1] == p.arguments[2]: return False
+            if p.function.primitive == 'eq?' and len(p.arguments) > 1 and p.arguments[0] == p.arguments[1]: return False
+            if p.function.primitive == 'car' and p.arguments != [] and isinstance(p.arguments[0], Function) and isinstance(p.arguments[0].function, BasicPrimitive) and (p.arguments[0].function.primitive == 'singleton' or p.arguments[0].function.primitive == 'cons'): return 0
+        return scan_sanity(p.function) and all(scan_sanity(arg) for arg in p.arguments)
+    return True

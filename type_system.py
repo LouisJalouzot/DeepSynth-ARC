@@ -230,3 +230,5 @@ class UnknownType(Type):
 INT = PrimitiveType('int')
 BOOL = PrimitiveType('bool')
 STRING = PrimitiveType('str')
+OBJ = PrimitiveType('obj')
+COLOR = PrimitiveType('color')

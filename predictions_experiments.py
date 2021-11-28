@@ -7,21 +7,18 @@ from torch import nn
 device = 'cpu'
 
 # A block is a concatenation of a linear layer + a sigmoid
-
-
 def block(input_dim, output_dim):
     return nn.Sequential(
         nn.Linear(input_dim, output_dim),
         nn.Sigmoid()
     )
 
-
 class Net(nn.Module):
     '''
     Predictor Class
     Args:
         template_cfg: a cfg template
-        embedder: a objet that can embed inputs, ouputs and programs
+        embedder: an object that can embed inputs, ouputs and programs
         size_hidden: size of a hidden layer
         output_dim: dimension of the output predictions (= number of transitions in the PCFG)        
     '''
@@ -86,7 +83,8 @@ class Net(nn.Module):
 class Embedding():
     '''
     Objet that can embed inputs, ouputs and programs
-    for simplicity we only embed arguments of type list[float] here (there is another file with a more generic implementation with the possibility to work with any type)
+    for simplicity we only embed arguments of type list[float] here (there is another file with a more generic implementation
+    with the possibility to work with any type)
 
     template_cfg: a cfg template
     size_max: size max of an input or an output (= length of the associated list)
@@ -94,7 +92,8 @@ class Embedding():
 
     self.io_dim: the dimension of the concatenation of an input/output pair
 
-    example; if inputs/output = [[input_1, input_2, etc..], output] = [[[11,20],[3]], [12,2]] and size_max = 2, nb_inputs_max = 3 the encoding is [11,1,20,1,3,1,0,0,0,0,0,0, 12,1,2,1]
+    example; if inputs/output = [[input_1, input_2, etc..], output] = [[[11,20],[3]], [12,2]] and size_max = 2, nb_inputs_max = 3
+    the encoding is [11,1,20,1,3,1,0,0,0,0,0,0, 12,1,2,1]
     '''
 
     def __init__(self, template_cfg, size_max, nb_inputs_max) -> None:
